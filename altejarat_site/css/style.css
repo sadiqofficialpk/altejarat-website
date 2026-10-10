@@ -419,3 +419,8 @@ body{overflow-x:clip}
 /* logo images */
 .brand-logo{width:42px; height:42px; border-radius:12px; object-fit:cover; background:#fff; box-shadow:0 4px 12px rgba(124,58,237,.25)}
 .brand-logo.sm{width:36px; height:36px; border-radius:10px}
+
+/* product gallery */
+.thumbs{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap}
+.thumb{width:64px; height:64px; object-fit:cover; border-radius:10px; border:2px solid var(--line); cursor:pointer; background:#fff}
+.thumb.on{border-color:var(--brand)}

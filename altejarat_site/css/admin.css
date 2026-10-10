@@ -157,3 +157,12 @@ select.status{min-height:40px}
 .cloud-badge{margin:10px 14px 4px; padding:8px 12px; border-radius:20px; font-size:12.5px; font-weight:600; text-align:center}
 .cloud-badge.on{background:rgba(46,204,113,.15); color:#27ae60; border:1px solid rgba(46,204,113,.4)}
 .cloud-badge.off{background:rgba(150,150,150,.12); color:#888; border:1px solid rgba(150,150,150,.3)}
+
+/* multi-image list */
+.img-list{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px}
+.img-item{width:92px}
+.img-item img{width:92px; height:92px; object-fit:cover; border-radius:10px; border:2px solid var(--line); background:#f7faf8; display:block}
+.img-item.primary img{border-color:#e8a100}
+.img-btns{display:flex; gap:4px; margin-top:4px; justify-content:center; align-items:center}
+.img-btns .btn{padding:4px 8px; font-size:12px}
+.prim-tag{font-size:11px; font-weight:700; color:#b8860b}

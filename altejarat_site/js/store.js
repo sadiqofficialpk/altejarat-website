@@ -62,7 +62,7 @@
       <div class="tot-row"><span>Delivery</span><span class="at-checkout">at checkout</span></div>
       <div class="tot-row grand"><span>Total</span><span>${DB.money(cartSubtotal())}<small> + delivery</small></span></div>
       <div class="del-note">* Delivery: Lahore ${DB.money(lahoreFee)}, other cities ${DB.money(otherFee)}</div>
-      <a class="btn btn-green" style="width:100%;text-align:center;margin-top:10px" href="#/checkout">Checkout →</a>`;
+      <a class="btn btn-green" style="width:100%;text-align:center;margin-top:10px" href="/checkout">Checkout →</a>`;
   }
 
   function openCart() { $('#cartDrawer').classList.add('open'); $('#overlay').classList.add('show'); }
@@ -94,10 +94,10 @@
     const img = DB.productImage(p);
     return `<div class="card">
       ${p.featured ? '<span class="flag">Best Seller</span>' : ''}
-      <a href="#/product/${p.id}"><img src="${DB.esc(img)}" alt="${DB.esc(p.name)}" loading="lazy"></a>
+      <a href="/product/${p.id}"><img src="${DB.esc(img)}" alt="${DB.esc(p.name)}" loading="lazy"></a>
       <div class="card-body">
         <span class="card-cat">${DB.esc(p.category || '')}</span>
-        <a class="card-name" href="#/product/${p.id}">${DB.esc(p.name)}</a>
+        <a class="card-name" href="/product/${p.id}">${DB.esc(p.name)}</a>
         <span class="card-price">${DB.money(p.price)}</span>
         <button class="btn btn-gold" data-add="${p.id}">Add to Cart</button>
       </div>
@@ -152,10 +152,10 @@
     return `
       <div class="bcard">
         <button class="heart ${on ? 'on' : ''}" data-wish="${DB.esc(p.id)}" aria-label="Wishlist">${on ? '♥' : '♡'}</button>
-        <a href="#/product/${DB.esc(p.id)}"><img class="pimg" src="${DB.esc(DB.productImage(p))}" alt="${DB.esc(p.name)}" loading="lazy"></a>
+        <a href="/product/${DB.esc(p.id)}"><img class="pimg" src="${DB.esc(DB.productImage(p))}" alt="${DB.esc(p.name)}" loading="lazy"></a>
         <div class="bcard-body">
           ${p.category ? `<span class="card-cat">${DB.esc(p.category)}</span>` : ''}
-          <a class="card-name" href="#/product/${DB.esc(p.id)}">${DB.esc(p.name)}</a>
+          <a class="card-name" href="/product/${DB.esc(p.id)}">${DB.esc(p.name)}</a>
           <span class="card-price">${DB.money(p.price)}</span>
           <button class="add-btn" data-add="${DB.esc(p.id)}">ADD TO CART 🛒</button>
         </div>
@@ -167,7 +167,7 @@
     const list = DB.visibleProducts().filter(p => getWish().includes(p.id));
     app.innerHTML = `
       <section class="section"><div class="wrap">
-        <div class="sec-head"><h2>🤍 My Wishlist</h2><a class="view-all" href="#/shop">Continue Shopping →</a></div>
+        <div class="sec-head"><h2>🤍 My Wishlist</h2><a class="view-all" href="/shop">Continue Shopping →</a></div>
         ${list.length ? `<div class="bgrid">${list.map(bcardHTML).join('')}</div>`
           : '<div class="empty">Abhi koi favorite nahi hai.<br>Products par ♥ dabao — wo yahan save ho jayenge!</div>'}
       </div></section>`;
@@ -186,7 +186,7 @@
     const catCards = cats.map(c => {
       const items = prods.filter(p => p.category === c);
       if (!items.length) return '';
-      return `<a class="cat-circle" href="#/shop/${encodeURIComponent(c)}">
+      return `<a class="cat-circle" href="/shop/${encodeURIComponent(c)}">
         <span class="cc-img"><img src="${DB.esc(DB.getCategoryImage(c) || DB.productImage(items[0]))}" alt="${DB.esc(c)}" loading="lazy"></span>
         <b>${DB.esc(c)}</b><small>Shop Now →</small></a>`;
     }).join('');
@@ -210,7 +210,7 @@
       const items = prods.filter(p => p.category === c).slice(0, 4);
       if (!items.length) return '';
       return `<section class="section"><div class="wrap">
-        <div class="sec-head"><h2>${DB.esc(c)}</h2><a class="view-all" href="#/shop/${encodeURIComponent(c)}">View All →</a></div>
+        <div class="sec-head"><h2>${DB.esc(c)}</h2><a class="view-all" href="/shop/${encodeURIComponent(c)}">View All →</a></div>
         <div class="bgrid">${items.map(bcardHTML).join('')}</div>
       </div></section>`;
     }).join('');
@@ -221,7 +221,7 @@
           <span class="hero-badge">CASH ON DELIVERY</span>
           <h1>Everything You Need,<br><span class="hl">Every Day!</span></h1>
           <p>Quality products at honest prices — WhatsApp par asaan order, parcel milne par payment.</p>
-          <a class="btn btn-brand" href="#/shop">EXPLORE COLLECTION →</a>
+          <a class="btn btn-brand" href="/shop">EXPLORE COLLECTION →</a>
         </div>
         <div class="hero-visual">
           <div class="hero-blob"></div>
@@ -243,19 +243,19 @@
       </div></section>` : ''}
 
       ${best.length ? `<section class="section"><div class="wrap">
-        <div class="sec-head"><h2>Best Sellers</h2><a class="view-all" href="#/shop">View All →</a></div>
+        <div class="sec-head"><h2>Best Sellers</h2><a class="view-all" href="/shop">View All →</a></div>
         <div class="bgrid">${best.map(bcardHTML).join('')}</div>
       </div></section>` : ''}
 
       ${showcase.length ? `<section class="section"><div class="wrap">
-        <div class="sec-head"><h2>Featured Collections</h2><a class="view-all" href="#/shop">View All →</a></div>
+        <div class="sec-head"><h2>Featured Collections</h2><a class="view-all" href="/shop">View All →</a></div>
         <div class="showcase">${showcase.map(s => `
           <div class="scard">
             <img src="${DB.esc(s.img)}" alt="${DB.esc(s.c)}" loading="lazy">
             <div class="scard-body">
               <small>${s.n} Products</small>
               <h3>${DB.esc(s.c)}</h3>
-              <a class="btn-white" href="#/shop/${encodeURIComponent(s.c)}">SHOP NOW →</a>
+              <a class="btn-white" href="/shop/${encodeURIComponent(s.c)}">SHOP NOW →</a>
             </div>
           </div>`).join('')}</div>
       </div></section>` : ''}
@@ -272,7 +272,7 @@
         ${pick ? `<div class="promo promo-b">
           <div><small>Today's Pick</small><h3>${DB.esc(pick.name)}</h3>
             <p>${DB.money(pick.price)} — Cash on Delivery</p>
-            <a class="btn btn-brand" href="#/product/${DB.esc(pick.id)}">SHOP NOW →</a></div>
+            <a class="btn btn-brand" href="/product/${DB.esc(pick.id)}">SHOP NOW →</a></div>
           <img class="pick" src="${DB.esc(DB.productImage(pick))}" alt="${DB.esc(pick.name)}">
         </div>` : ''}
       </div></section>
@@ -316,7 +316,7 @@
   function renderCatNav() {
     const el = document.getElementById('catNav');
     if (!el) return;
-    el.innerHTML = `<a href="#/" data-nav>Home</a><a href="#/about" data-nav>About Us</a><a href="#/contact" data-nav>Contact Us</a>`;
+    el.innerHTML = `<a href="/" data-nav>Home</a><a href="/about" data-nav>About Us</a><a href="/contact" data-nav>Contact Us</a>`;
   }
 
   let shopQ = '', shopCat = 'all', shopSort = 'new';
@@ -357,10 +357,12 @@
     const hidden = p && !DB.visibleProducts().some(v => v.id === p.id);
     if (!p || hidden) { app.innerHTML = '<div class="wrap section"><div class="empty">Ye product abhi available nahi hai.</div></div>'; return; }
     const colors = (p.colors && p.colors.length) ? p.colors : [];
-    let ci = 0, qty = 1;
+    const gallery = DB.productImages(p);
+    let ci = 0, qty = 1, gi = 0;
     app.innerHTML = `
       <div class="wrap"><div class="pd">
-        <div><img class="main" id="pdImg" src="${DB.esc(DB.productImage(p))}" alt="${DB.esc(p.name)}"></div>
+        <div><img class="main" id="pdImg" src="${DB.esc(gallery[0] || '')}" alt="${DB.esc(p.name)}">
+        ${gallery.length > 1 ? `<div class="thumbs">${gallery.map((g, i) => `<img class="thumb ${i === 0 ? 'on' : ''}" data-gi="${i}" src="${DB.esc(g)}" alt="">`).join('')}</div>` : ''}</div>
         <div class="pd-info">
           <span class="pd-cat">${DB.esc(p.category || '')}</span>
           <h1>${DB.esc(p.name)}</h1>
@@ -376,6 +378,11 @@
           <div class="note">✓ Cash on Delivery · ✓ 3–5 working days delivery · ✓ WhatsApp par order bhi kar sakte hain</div>
         </div>
       </div></div>`;
+    document.querySelectorAll('.thumb').forEach(t => t.onclick = () => {
+      document.querySelectorAll('.thumb').forEach(x => x.classList.remove('on'));
+      t.classList.add('on'); gi = +t.dataset.gi;
+      document.getElementById('pdImg').src = gallery[gi];
+    });
     document.querySelectorAll('.tswatch').forEach(s => s.onclick = () => {
       document.querySelectorAll('.tswatch').forEach(x => x.classList.remove('on'));
       s.classList.add('on'); ci = +s.dataset.ci;
@@ -384,7 +391,7 @@
     $('#qMinus').onclick = () => { qty = Math.max(1, qty - 1); $('#qVal').textContent = qty; };
     $('#qPlus').onclick = () => { qty++; $('#qVal').textContent = qty; };
     $('#pdAdd').onclick = () => addToCart(p.id, ci, qty);
-    $('#pdBuy').onclick = () => { addToCartSilent(p.id, ci, qty); location.hash = '#/checkout'; };
+    $('#pdBuy').onclick = () => { addToCartSilent(p.id, ci, qty); nav('/checkout'); };
   }
 
   function addToCartSilent(pid, colorIdx, qty) {
@@ -399,7 +406,7 @@
   }
 
   function vCheckout() {
-    if (!cart.length) { location.hash = '#/shop'; return; }
+    if (!cart.length) { nav('/shop'); return; }
     app.innerHTML = `
       <div class="wrap"><div class="checkout">
         <h1>Checkout</h1><p class="sub">Cash on Delivery — pehle product, phir payment.</p>
@@ -518,7 +525,7 @@
     cart = []; saveCart(); updateCartBadge();
     sessionStorage.setItem('altejarat_last_order', id);
     window.open(waURL, '_blank');
-    location.hash = '#/success';
+    nav('/success');
   }
 
   function vSuccess() {
@@ -530,7 +537,7 @@
         <p>Aapki Order ID hai:</p>
         <div class="oid">${DB.esc(id)}</div>
         <p class="sub">Hum WhatsApp par rabta karke order confirm karenge.<br>Order ID sambhal kar rakhein.</p>
-        <a class="btn btn-green" href="#/shop" style="margin-top:14px">Continue Shopping</a>
+        <a class="btn btn-green" href="/shop" style="margin-top:14px">Continue Shopping</a>
       </div></div>`;
   }
 
@@ -563,7 +570,7 @@
         <div class="contact-card">
           <div class="big">🧾</div><h3>Order Help</h3>
           <p>Apne order ka status maloom karna ho to apni <strong>Order ID</strong> (jaise AT-0001) likh kar bhejein.</p>
-          <a class="btn btn-green" style="padding:12px 28px" href="#/shop">Shop Karein</a>
+          <a class="btn btn-green" style="padding:12px 28px" href="/shop">Shop Karein</a>
         </div>
       </div>` },
 
@@ -613,10 +620,10 @@
 
   function vPage(key) {
     const pg = PAGES[key];
-    if (!pg) { location.hash = '#/'; return; }
+    if (!pg) { nav('/'); return; }
     app.innerHTML = `
       <div class="page">
-        <div class="crumbs"><a href="#/">Home</a> / ${DB.esc(pg.title)}</div>
+        <div class="crumbs"><a href="/">Home</a> / ${DB.esc(pg.title)}</div>
         <h1>${DB.esc(pg.title)}</h1>
         ${pg.updated ? `<div class="updated">${DB.esc(pg.updated)}</div>` : ''}
         <div class="prose">${pg.body}</div>
@@ -628,28 +635,44 @@
   }
 
   /* ---------- router ---------- */
+  function currentPath() {
+    let p = location.pathname || '/';
+    if (p.length > 1) p = p.replace(/\/+$/, '');
+    return p || '/';
+  }
+  function nav(p) { history.pushState({}, '', p); route(); }
   function route() {
-    const h = location.hash || '#/';
+    const h = currentPath();
     const links = [...document.querySelectorAll('[data-nav]')];
     const exact = links.find(a => a.getAttribute('href') === h);
     links.forEach(a => {
       const href = a.getAttribute('href');
-      a.classList.toggle('on', exact ? a === exact : (href !== '#/' && h.startsWith(href)));
+      a.classList.toggle('on', exact ? a === exact : (href !== '/' && h.startsWith(href)));
     });
     closeCart();
     window.scrollTo(0, 0);
-    if (h.startsWith('#/product/')) vProduct(h.split('/')[2]);
-    else if (h.startsWith('#/shop/')) vShop(decodeURIComponent(h.split('/')[2] || 'all'));
-    else if (h.startsWith('#/shop')) vShop();
-    else if (h === '#/wishlist') vWishlist();
-    else if (h.startsWith('#/checkout')) vCheckout();
-    else if (h.startsWith('#/success')) vSuccess();
-    else if (['#/about', '#/contact', '#/privacy', '#/refund', '#/shipping', '#/terms'].includes(h)) vPage(h.slice(2));
+    if (h.startsWith('/product/')) vProduct(h.split('/')[2]);
+    else if (h.startsWith('/shop/')) vShop(decodeURIComponent(h.split('/')[2] || 'all'));
+    else if (h === '/shop') vShop();
+    else if (h === '/wishlist') vWishlist();
+    else if (h.startsWith('/checkout')) vCheckout();
+    else if (h.startsWith('/success')) vSuccess();
+    else if (['/about', '/contact', '/privacy', '/refund', '/shipping', '/terms'].includes(h)) vPage(h.slice(1));
     else vHome();
   }
-  document.getElementById('wishBtn').onclick = () => location.hash = '#/wishlist';
+  // internal links -> SPA navigation (no page reload)
+  document.addEventListener('click', e => {
+    const a = e.target.closest('a[href^="/"]');
+    if (!a || a.target === '_blank' || e.metaKey || e.ctrlKey || e.shiftKey) return;
+    const href = a.getAttribute('href');
+    if (!href) return;
+    e.preventDefault();
+    if (href !== currentPath()) nav(href);
+    else { closeCart(); window.scrollTo(0, 0); }
+  });
+  document.getElementById('wishBtn').onclick = () => nav('/wishlist');
   renderSocial();
-  window.addEventListener('hashchange', route);
+  window.addEventListener('popstate', route);
   updateCartBadge();
   updateWishBadge();
   renderCatNav();

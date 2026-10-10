@@ -196,7 +196,7 @@
       : Object.assign({}, DB.getProduct(editingId));
     const costs = DB.getCosts();
     const cost = costs[p.id] !== undefined ? costs[p.id] : '';
-    const imgVal = p.image || DB.productImage(p);
+    const imgList0 = DB.productImages(p);
     const colorList = (p.colors || []).filter(c => typeof c === 'string');
     const cats = DB.getCategories();
     const catOpts = cats.map(c => `<option value="${DB.esc(c)}" ${p.category === c ? 'selected' : ''}>${DB.esc(c)}</option>`).join('');
@@ -215,14 +215,16 @@
           </select></div>
           <div><label class="fl">&nbsp;</label><div class="lock" style="margin-top:0">💡 Draft products website par nahi dikhenge — delete karne ki zaroorat nahi.</div></div>
         </div>
-        <label class="fl">Product Image</label>
+        <label class="fl">Product Images <small style="color:var(--mut)">(ek se zyada select kar sakte ho — pehli wali main photo hogi)</small></label>
+        <div id="imgList" class="img-list"></div>
         <div class="img-row">
-          <img id="f_preview" class="img-preview" src="${DB.esc(imgVal)}" ${imgVal ? '' : 'hidden'}>
           <div style="flex:1">
-            <input type="file" id="f_imgfile" accept="image/*" class="fi" style="padding:8px">
-            <small style="color:var(--mut)">📱 Device se photo select karein — khud chhoti hokar save ho jayegi. <span id="f_upmsg"></span></small>
-            <input class="fi" id="f_img" value="${DB.esc(imgVal)}" placeholder="images/my-photo.jpg" style="margin-top:8px">
-            <small style="color:var(--mut)">Ya GitHub <b>images/</b> folder ka path likhein.</small>
+            <input type="file" id="f_imgfile" accept="image/*" multiple class="fi" style="padding:8px">
+            <small style="color:var(--mut)">📱 Device se photos select karein — khud chhoti hokar save ho jayengi. <span id="f_upmsg"></span></small>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <input class="fi" id="f_imgpath" placeholder="images/my-photo.jpg" style="flex:1;margin-top:0">
+              <button class="btn btn-ghost" id="f_addpath" type="button">Add</button>
+            </div>
           </div>
         </div>
         <div class="frow3">
@@ -257,23 +259,41 @@
     let colorVals = colorList.length ? colorList.slice() : [''];
     renderColorRows(colorVals);
     $('#addColor').onclick = () => { renderColorRows([...readColorInputs(), '']); };
-    $('#f_img').oninput = e => {
-      const pv = $('#f_preview');
-      pv.src = e.target.value.trim();
-      pv.hidden = !e.target.value.trim();
+    let imgList = imgList0.slice();
+    const renderImgList = () => {
+      $('#imgList').innerHTML = imgList.map((u, i) => `
+        <div class="img-item ${i === 0 ? 'primary' : ''}">
+          <img src="${DB.esc(u)}" alt="">
+          <div class="img-btns">
+            ${i === 0 ? '<span class="prim-tag">★ Main</span>' : `<button class="btn btn-ghost" data-mkprim="${i}" type="button" title="Main photo banayein">★</button>`}
+            <button class="btn btn-red" data-rmimg="${i}" type="button">✕</button>
+          </div>
+        </div>`).join('') || '<p class="sub">Koi photo nahi — neeche se select karein.</p>';
+      $('#imgList').querySelectorAll('[data-rmimg]').forEach(b => b.onclick = () => { imgList.splice(+b.dataset.rmimg, 1); renderImgList(); });
+      $('#imgList').querySelectorAll('[data-mkprim]').forEach(b => b.onclick = () => { const u = imgList.splice(+b.dataset.mkprim, 1)[0]; imgList.unshift(u); renderImgList(); });
     };
-    const ffile = $('#f_imgfile');
-    if (ffile) ffile.onchange = async e => {
-      const file = e.target.files[0];
-      if (!file) return;
+    renderImgList();
+    $('#f_imgfile').onchange = async e => {
+      const files = [...e.target.files];
+      e.target.value = '';
+      if (!files.length) return;
+      if (imgList.length + files.length > 6) { alert('Zyada se zyada 6 photos rakh sakte ho.'); return; }
       const msg = $('#f_upmsg');
-      msg.textContent = '⏳ Photo taiyar ho rahi hai...';
-      try {
-        const url = await DB.uploadImage(file, 'products');
-        $('#f_img').value = url;
-        const pv = $('#f_preview'); pv.src = url; pv.hidden = false;
-        msg.textContent = '✅ Ho gayi!';
-      } catch (err) { msg.textContent = '❌ Fail: ' + ((err && err.message) || err); }
+      msg.textContent = '⏳ Photos taiyar ho rahi hain...';
+      for (const file of files) {
+        try { imgList.push(await DB.uploadImage(file, 'products')); }
+        catch (err) { alert('Fail: ' + ((err && err.message) || err)); break; }
+      }
+      msg.textContent = '✅ Ho gayi!';
+      renderImgList();
+    };
+    $('#f_addpath').onclick = () => {
+      const v = $('#f_imgpath').value.trim();
+      if (!v) return;
+      if (imgList.length >= 6) { alert('Zyada se zyada 6 photos rakh sakte ho.'); return; }
+      if (!imgList.includes(v)) imgList.push(v);
+      $('#f_imgpath').value = '';
+      renderImgList();
     };
 
     $('#f_save').onclick = () => {
@@ -286,7 +306,8 @@
         status: $('#f_status').value === 'draft' ? 'draft' : 'active',
         stock: Number($('#f_stock').value) || 0,
         description: $('#f_desc').value.trim(),
-        image: $('#f_img').value.trim(),
+        image: imgList[0] || '',
+        images: imgList.slice(1),
         colors: colorVals,
         featured: $('#f_feat').checked
       });

@@ -478,6 +478,14 @@ const DB = (() => {
     if (p.colors && p.colors[0] && p.colors[0].img) return p.colors[0].img; // very old data
     return '';
   }
+  // gallery: primary image + extra images
+  function productImages(p) {
+    const arr = [];
+    if (p.image) arr.push(p.image);
+    (p.images || []).forEach(u => { if (u && !arr.includes(u)) arr.push(u); });
+    if (!arr.length && p.colors && p.colors[0] && p.colors[0].img) arr.push(p.colors[0].img);
+    return arr;
+  }
 
   // storefront par sirf wahi products: active + jin ki category maujood ho
   const visibleProducts = () => {
@@ -518,7 +526,7 @@ const DB = (() => {
 
   return {
     init, ready: () => CLOUD, isCloud: () => CLOUD, uploadImage, onOrdersChanged,
-    money, esc, CITIES, deliveryFeeFor, productImage,
+    money, esc, CITIES, deliveryFeeFor, productImage, productImages,
     getCategories, addCategory, renameCategory, deleteCategory, moveCategory,
     getCategoryImage, setCategoryImage,
     getProducts, getProduct, saveProduct, deleteProduct, visibleProducts,
