@@ -432,8 +432,27 @@ const DB = (() => {
   /* ================= PUBLIC API (mode-independent) ================= */
 
   const getProducts = () => CLOUD ? C_getProducts() : L_getProducts();
+  /* ---- SEO slugs: /product/michael-kors-hand-bag ---- */
+  function slugify(str) {
+    const sl = String(str || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+    return sl || 'product';
+  }
+  function productSlug(p) { return p.slug || slugify(p.name); }
+  function getProductBySlug(key) {
+    return getProducts().find(p => p.id === key || productSlug(p) === key);
+  }
+  function ensureSlug(p) {
+    const all = getProducts();
+    const ex = all.find(x => x.id === p.id);
+    if (ex && ex.slug && (ex.name || '') === (p.name || '')) { p.slug = ex.slug; return p; }
+    const base = slugify(p.name);
+    let slug = base, n = 2;
+    while (all.some(x => x.id !== p.id && productSlug(x) === slug)) slug = base + '-' + (n++);
+    p.slug = slug;
+    return p;
+  }
   const getProduct = id => CLOUD ? C_getProduct(id) : L_getProduct(id);
-  const saveProduct = p => CLOUD ? C_saveProduct(p) : L_saveProduct(p);
+  const saveProduct = p => { p = ensureSlug(Object.assign({}, p)); return CLOUD ? C_saveProduct(p) : L_saveProduct(p); };
   const deleteProduct = id => CLOUD ? C_deleteProduct(id) : L_deleteProduct(id);
 
   const getCosts = () => CLOUD ? C_getCosts() : L_getCosts();
@@ -529,7 +548,7 @@ const DB = (() => {
     money, esc, CITIES, deliveryFeeFor, productImage, productImages,
     getCategories, addCategory, renameCategory, deleteCategory, moveCategory,
     getCategoryImage, setCategoryImage,
-    getProducts, getProduct, saveProduct, deleteProduct, visibleProducts,
+    getProducts, getProduct, getProductBySlug, productSlug, saveProduct, deleteProduct, visibleProducts,
     getCosts, setCost,
     nextOrderId, addOrder, getOrders, setOrderStatus,
     getSettings, saveSettings,

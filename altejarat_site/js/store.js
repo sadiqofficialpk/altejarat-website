@@ -94,10 +94,10 @@
     const img = DB.productImage(p);
     return `<div class="card">
       ${p.featured ? '<span class="flag">Best Seller</span>' : ''}
-      <a href="/product/${p.id}"><img src="${DB.esc(img)}" alt="${DB.esc(p.name)}" loading="lazy"></a>
+      <a href="/product/${DB.esc(DB.productSlug(p))}"><img src="${DB.esc(img)}" alt="${DB.esc(p.name)}" loading="lazy"></a>
       <div class="card-body">
         <span class="card-cat">${DB.esc(p.category || '')}</span>
-        <a class="card-name" href="/product/${p.id}">${DB.esc(p.name)}</a>
+        <a class="card-name" href="/product/${DB.esc(DB.productSlug(p))}">${DB.esc(p.name)}</a>
         <span class="card-price">${DB.money(p.price)}</span>
         <button class="btn btn-gold" data-add="${p.id}">Add to Cart</button>
       </div>
@@ -152,10 +152,10 @@
     return `
       <div class="bcard">
         <button class="heart ${on ? 'on' : ''}" data-wish="${DB.esc(p.id)}" aria-label="Wishlist">${on ? '♥' : '♡'}</button>
-        <a href="/product/${DB.esc(p.id)}"><img class="pimg" src="${DB.esc(DB.productImage(p))}" alt="${DB.esc(p.name)}" loading="lazy"></a>
+        <a href="/product/${DB.esc(DB.productSlug(p))}"><img class="pimg" src="${DB.esc(DB.productImage(p))}" alt="${DB.esc(p.name)}" loading="lazy"></a>
         <div class="bcard-body">
           ${p.category ? `<span class="card-cat">${DB.esc(p.category)}</span>` : ''}
-          <a class="card-name" href="/product/${DB.esc(p.id)}">${DB.esc(p.name)}</a>
+          <a class="card-name" href="/product/${DB.esc(DB.productSlug(p))}">${DB.esc(p.name)}</a>
           <span class="card-price">${DB.money(p.price)}</span>
           <button class="add-btn" data-add="${DB.esc(p.id)}">ADD TO CART 🛒</button>
         </div>
@@ -272,7 +272,7 @@
         ${pick ? `<div class="promo promo-b">
           <div><small>Today's Pick</small><h3>${DB.esc(pick.name)}</h3>
             <p>${DB.money(pick.price)} — Cash on Delivery</p>
-            <a class="btn btn-brand" href="/product/${DB.esc(pick.id)}">SHOP NOW →</a></div>
+            <a class="btn btn-brand" href="/product/${DB.esc(DB.productSlug(pick))}">SHOP NOW →</a></div>
           <img class="pick" src="${DB.esc(DB.productImage(pick))}" alt="${DB.esc(pick.name)}">
         </div>` : ''}
       </div></section>
@@ -353,7 +353,7 @@
   }
 
   function vProduct(id) {
-    const p = DB.getProduct(id);
+    const p = DB.getProductBySlug(decodeURIComponent(id)) || DB.getProduct(id);
     const hidden = p && !DB.visibleProducts().some(v => v.id === p.id);
     if (!p || hidden) { app.innerHTML = '<div class="wrap section"><div class="empty">Ye product abhi available nahi hai.</div></div>'; return; }
     const colors = (p.colors && p.colors.length) ? p.colors : [];
