@@ -1,0 +1,16 @@
+// Al Tejarat — Storage security rules
+// Firebase console → Storage → Rules tab mein paste karein → Publish
+//
+// - Images sab dekh sakte hain (website par dikhani hain)
+// - Upload: sirf images, max 5MB
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read: if true;
+      allow write: if request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+  }
+}

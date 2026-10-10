@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Al Tejarat — Everything You Need, Every Day!</title>
+<meta name="description" content="Al Tejarat — Everything You Need, Every Day! Cash on Delivery all over Pakistan.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-in">
+    <a class="brand" href="#/">
+      <img class="brand-logo" src="images/logo-mark.png" alt="Al Tejarat">
+      <span class="brand-text"><strong>Al Tejarat</strong><small>Everything You Need, Every Day!</small></span>
+    </a>
+    <nav class="nav" id="catNav"></nav>
+    <div class="top-actions">
+      <a class="btn btn-brand btn-sm" href="#/shop">SHOP NOW</a>
+      <button class="wish-btn" id="wishBtn" aria-label="Wishlist">🤍 <span id="wishCount">0</span></button>
+      <button class="cart-btn" id="cartBtn" aria-label="Cart">🛒 <span id="cartCount">0</span></button>
+    </div>
+  </div>
+  <div class="announce" id="announce"></div>
+</header>
+
+<main id="app"></main>
+
+<footer class="footer">
+  <div class="wrap foot-grid">
+    <div class="foot-col">
+      <div class="foot-brand"><img class="brand-logo sm" src="images/logo-mark.png" alt="Al Tejarat"><strong>Al Tejarat</strong></div>
+      <p>Everything You Need, Every Day!<br>Quality products with Cash on Delivery, all over Pakistan.</p>
+      <div class="social-row" id="socialRow"></div>
+    </div>
+    <div class="foot-col">
+      <strong>QUICK LINKS</strong>
+      <a href="#/shop">All Products</a>
+      <a href="#/about">About Us</a>
+      <a href="#/contact">Contact Us</a>
+    </div>
+    <div class="foot-col">
+      <strong>CUSTOMER SERVICE</strong>
+      <a href="#/shipping">Shipping Policy</a>
+      <a href="#/refund">Refund Policy</a>
+      <a href="#/terms">Terms of Service</a>
+      <a href="#/privacy">Privacy Policy</a>
+    </div>
+    <div class="foot-col">
+      <strong>GET IN TOUCH</strong>
+      <p>WhatsApp: <span id="footWaNum">0334 8954786</span><br>Mon–Sat, 9am – 9pm<br>Cash on Delivery nationwide</p>
+    </div>
+  </div>
+  <div class="foot-bottom"><div class="wrap">© 2026 Al Tejarat. All rights reserved.</div></div>
+</footer>
+
+<aside class="drawer" id="cartDrawer" aria-hidden="true">
+  <div class="drawer-head">
+    <strong>Your Cart</strong>
+    <button class="x" id="cartClose">✕</button>
+  </div>
+  <div class="drawer-body" id="cartBody"></div>
+  <div class="drawer-foot" id="cartFoot"></div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<!-- Netlify Forms backup: order details are also posted here so the owner gets an email notification -->
+<form name="order" data-netlify="true" netlify-honeypot="bot" hidden>
+  <input type="text" name="order_id">
+  <input type="text" name="customer">
+  <input type="text" name="phone">
+  <input type="text" name="address">
+  <input type="text" name="items">
+  <input type="text" name="total">
+  <input type="text" name="bot">
+</form>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/db.js"></script>
+<script src="js/store.js"></script>
+</body>
+</html>

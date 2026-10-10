@@ -1,0 +1,41 @@
+rules_version = '2';
+
+// Al Tejarat — Firestore security rules
+// Firebase console → Firestore Database → Rules tab mein paste karein → Publish
+//
+// - Products / categories / settings: sab parh sakte hain (website ke liye zaroori)
+// - Orders: customer naya order bana sakta hai; status sirf admin panel se change hota hai
+// - Order ka data (items, total, customer) banne ke baad change NAHI ho sakta
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /products/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /categories/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /settings/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /meta/{id} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /orders/{id} {
+      allow read: if true;
+      allow create: if true;
+      // sirf status change ho sakta hai (Pending → Confirmed → Delivered)
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+      allow delete: if false;
+    }
+  }
+}
