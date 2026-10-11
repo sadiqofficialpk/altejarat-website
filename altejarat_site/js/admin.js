@@ -612,6 +612,12 @@
           <div><label class="fl">&nbsp;</label><div class="lock" style="margin-top:0">💡 Khali chhoro to wo icon show nahi hoga. WhatsApp icon number se khud ban jata hai.</div></div>
         </div>
       </div>
+      <div class="form-card"><h3>📊 TikTok Pixel <small style="color:var(--mut);font-weight:400">(ads ke liye — Events Manager se Pixel ID copy karke yahan paste karein)</small></h3>
+        <div class="frow">
+          <div><label class="fl">TikTok Pixel ID</label><input class="fi" id="s_pixel" value="${DB.esc(s.tiktokPixel || '')}" placeholder="e.g. D0ABC1234567890"></div>
+          <div><label class="fl">&nbsp;</label><div class="lock" style="margin-top:0">💡 ID lagate hi website par pixel auto chal jayega — PageView, ViewContent, AddToCart, Checkout, Order sab track hoga.</div></div>
+        </div>
+      </div>
       <div class="form-card"><h3>🔐 Change Admin Password</h3>
         <div class="frow">
           <div><label class="fl">New Password</label><input class="fi" id="s_p1" type="password"></div>
@@ -636,7 +642,8 @@
         announcements: $('#s_ann').value.trim(),
         tiktok: $('#s_tt').value.trim(),
         facebook: $('#s_fb').value.trim(),
-        instagram: $('#s_ig').value.trim()
+        instagram: $('#s_ig').value.trim(),
+        tiktokPixel: $('#s_pixel').value.trim()
       };
       if (p1) upd.adminPass = p1;
       DB.saveSettings(upd);

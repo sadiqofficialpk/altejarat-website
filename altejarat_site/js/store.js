@@ -2,6 +2,34 @@
 (async () => {
   await DB.init();
   const settings = () => DB.getSettings();
+  /* ---- TikTok pixel ---- */
+  let pixelReady = false;
+  function initPixel() {
+    const pid = (settings().tiktokPixel || '').trim();
+    if (!pid || pixelReady || typeof document === 'undefined') return;
+    try {
+      const w = window;
+      w.TiktokAnalyticsObject = 'ttq';
+      const ttq = w.ttq = w.ttq || [];
+      ttq.methods = ['page','track','identify','instances','debug','on','off','once','ready','alias','group','enableCookie','disableCookie'];
+      ttq.setAndDefer = function(t, e) { t[e] = function() { t.push([e].concat(Array.prototype.slice.call(arguments, 0))); }; };
+      for (let i = 0; i < ttq.methods.length; i++) ttq.setAndDefer(ttq, ttq.methods[i]);
+      ttq.load = function(e) {
+        ttq._i = ttq._i || {}; ttq._i[e] = [];
+        const a = document.createElement('script');
+        a.type = 'text/javascript'; a.async = true;
+        a.src = 'https://analytics.tiktok.com/i18n/pixel/events.js?sdkid=' + e + '&lib=ttq';
+        const x = document.getElementsByTagName('script')[0];
+        x.parentNode.insertBefore(a, x);
+      };
+      ttq.load(pid);
+      ttq.page();
+      pixelReady = true;
+    } catch (e) { /* pixel optional */ }
+  }
+  function pxEvent(name, params) {
+    try { if (pixelReady && window.ttq) window.ttq.track(name, params || {}); } catch (e) {}
+  }
   const $ = sel => document.querySelector(sel);
   const app = $('#app');
 
@@ -38,6 +66,7 @@
     if (ex) ex.qty += qty;
     else cart.push({ key, pid, name: p.name, color: colorName, size: sizeName, img: DB.productImage(p), price: p.price, qty });
     saveCart(); updateCartBadge(); renderCart(); openCart();
+    pxEvent('AddToCart', { content_id: pid, content_name: p.name, price: Number(p.price) || 0, quantity: qty, currency: 'PKR' });
   }
 
   function renderCart() {
@@ -521,6 +550,7 @@
       };
     };
     renderReviews();
+    pxEvent('ViewContent', { content_id: p.id, content_name: p.name, price: Number(p.price) || 0, currency: 'PKR' });
   }
 
   function addToCartSilent(pid, colorIdx, sizeIdx, qty) {
@@ -538,6 +568,7 @@
 
   function vCheckout() {
     if (!cart.length) { nav('/shop'); return; }
+    pxEvent('InitiateCheckout', { value: cartSubtotal(), currency: 'PKR', num_items: cartQty() });
     app.innerHTML = `
       <div class="wrap"><div class="checkout">
         <h1>Checkout</h1><p class="sub">Cash on Delivery — pehle product, phir payment.</p>
@@ -653,6 +684,10 @@
     ];
     const waURL = 'https://wa.me/' + settings().whatsapp + '?text=' + encodeURIComponent(lines.join('\n'));
 
+    pxEvent('CompletePayment', {
+      content_id: items.map(i => i.pid).join(','),
+      value: order.total, currency: 'PKR', num_items: items.reduce((a, i) => a + i.qty, 0)
+    });
     cart = []; saveCart(); updateCartBadge();
     sessionStorage.setItem('altejarat_last_order', id);
     window.open(waURL, '_blank');
@@ -782,6 +817,8 @@
     });
     closeCart();
     window.scrollTo(0, 0);
+    initPixel();
+    pxEvent('PageView');
     if (h.startsWith('/product/')) vProduct(h.split('/')[2]);
     else if (h.startsWith('/shop/')) vShop(decodeURIComponent(h.split('/')[2] || 'all'));
     else if (h === '/shop') vShop();
