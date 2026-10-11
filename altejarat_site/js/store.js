@@ -486,19 +486,25 @@
             <div>${DB.esc(r.text || '')}</div></div>
           </div>`).join('') || '<p class="sub">Abhi koi review nahi hai.</p>'}</div>
         ${revs.length > 4 ? `<button class="btn btn-ghost" id="revToggle" type="button">${showAll ? 'Kam dekhein ▲' : 'View All Reviews ▼'}</button>` : ''}
-        <h3 style="margin:18px 0 10px">Apna review dein</h3>
-        <div class="rev-form">
-          <input class="fi" id="rvName" placeholder="Aapka naam *">
-          <div class="star-input" id="rvStars">${[1,2,3,4,5].map(i => `<span data-star="${i}" class="${i <= 5 ? 'on' : ''}">★</span>`).join('')}</div>
-          <textarea class="fi" id="rvText" placeholder="Product kaisa laga? *"></textarea>
-          <input type="file" id="rvImg" accept="image/*" class="fi">
-          <button class="btn btn-brand" id="rvSubmit" type="button">Review Submit karein</button>
+        <div class="rev-form-card">
+        <h3>✍️ Apna review dein</h3>
+        <input class="fi" id="rvName" placeholder="Aapka naam *">
+        <div class="star-wrap"><span class="sub">Rating:</span><div class="star-input" id="rvStars">${[1,2,3,4,5].map(i => `<span data-star="${i}" class="on">★</span>`).join('')}</div></div>
+        <textarea class="fi" id="rvText" rows="3" placeholder="Product kaisa laga? *"></textarea>
+        <label class="file-btn">📷 Photo add karein <small>(optional)</small><input type="file" id="rvImg" accept="image/*" hidden></label>
+        <span id="rvFileName" class="sub"></span>
+        <button class="btn btn-brand" id="rvSubmit" type="button">Review Submit karein</button>
         </div></section>`;
       let rRating = 5;
       revWrap.querySelectorAll('[data-star]').forEach(sp => sp.onclick = () => {
         rRating = +sp.dataset.star;
         revWrap.querySelectorAll('[data-star]').forEach(x => x.classList.toggle('on', +x.dataset.star <= rRating));
       });
+      const rvImg = document.getElementById('rvImg');
+      if (rvImg) rvImg.onchange = () => {
+        const fn = document.getElementById('rvFileName');
+        if (fn) fn.textContent = rvImg.files[0] ? '✓ ' + rvImg.files[0].name : '';
+      };
       const tg = document.getElementById('revToggle');
       if (tg) tg.onclick = () => { revWrap.dataset.all = revWrap.dataset.all === '1' ? '0' : '1'; renderReviews(); };
       document.getElementById('rvSubmit').onclick = async () => {
