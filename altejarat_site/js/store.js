@@ -2,6 +2,36 @@
 (async () => {
   await DB.init();
   const settings = () => DB.getSettings();
+  /* ---- website content (admin se editable) ---- */
+  const DEFAULT_CONTENT = {
+    heroBadge: 'CASH ON DELIVERY',
+    heroTitle1: 'Everything You Need,',
+    heroTitle2: 'Every Day!',
+    heroSub: 'Quality products at honest prices — WhatsApp par asaan order, parcel milne par payment.',
+    heroBtn: 'EXPLORE COLLECTION →',
+    heroBtnLink: '/shop',
+    heroImg: 'images/bag_8_lavender.jpg',
+    trust: [
+      { ic: '🚚', t: 'Fast Delivery', s: '3–5 working days' },
+      { ic: '✓', t: 'Quality Checked', s: 'Verified products' },
+      { ic: '💵', t: 'COD Available', s: 'Pay on delivery' },
+      { ic: '💬', t: 'WhatsApp Support', s: 'Quick response' }
+    ],
+    catTitle: 'Shop By Category',
+    bestTitle: 'Best Sellers',
+    followSub: 'Nayi products aur offers ke liye humein follow karein!',
+    howTitle: 'How To Order',
+    steps: [
+      { ic: '🛍️', t: 'Product Pasand Karein', s: 'Categories browse karein ya search se apni pasand ka product chunein.' },
+      { ic: '🛒', t: 'Order Place Karein', s: 'Cart mein add karke checkout karein, ya seedha WhatsApp par order bhejein.' },
+      { ic: '💵', t: 'Pay on Delivery', s: 'Parcel 3–5 din mein aapke darwaze par — payment tabhi karein jab mile.' }
+    ],
+    footAbout: 'Everything You Need, Every Day!<br>Quality products with Cash on Delivery, all over Pakistan.',
+    footContactLines: 'Mon–Sat, 9am – 9pm<br>Cash on Delivery nationwide',
+    footCopy: '© 2026 Al Tejarat. All rights reserved.',
+    pages: {}
+  };
+  const content = () => Object.assign({}, DEFAULT_CONTENT, (settings().content || {}));
   /* ---- TikTok pixel ---- */
   let pixelReady = false;
   function initPixel() {
@@ -156,6 +186,17 @@
     if (s.instagram) links.push({ k: 'instagram', href: s.instagram, label: 'Instagram' });
     return links;
   }
+  function renderFooter() {
+    try {
+      const ct = content();
+      const fa = document.getElementById('footAbout');
+      if (fa && ct.footAbout) fa.innerHTML = ct.footAbout;
+      const fl = document.getElementById('footContactLines');
+      if (fl && ct.footContactLines) fl.innerHTML = ct.footContactLines;
+      const fc = document.getElementById('footCopy');
+      if (fc && ct.footCopy) fc.textContent = ct.footCopy;
+    } catch (e) {}
+  }
   function renderSocial() {
     const links = getSocialLinks();
     const el = document.getElementById('socialRow');
@@ -231,6 +272,7 @@
     const pick = prods[0];
     const waChat = 'https://wa.me/923348954786?text=' + encodeURIComponent('Assalam-o-Alaikum! Mujhe Al Tejarat se order karna hai.');
 
+    const ct = content();
     const followLinks = getSocialLinks();
     const followSocial = followLinks.filter(l => l.k !== 'whatsapp');
 
@@ -247,32 +289,29 @@
     app.innerHTML = `
       <section class="hero"><div class="wrap hero-grid">
         <div>
-          <span class="hero-badge">CASH ON DELIVERY</span>
-          <h1>Everything You Need,<br><span class="hl">Every Day!</span></h1>
-          <p>Quality products at honest prices — WhatsApp par asaan order, parcel milne par payment.</p>
-          <a class="btn btn-brand" href="/shop">EXPLORE COLLECTION →</a>
+          <span class="hero-badge">${DB.esc(ct.heroBadge)}</span>
+          <h1>${DB.esc(ct.heroTitle1)}<br><span class="hl">${DB.esc(ct.heroTitle2)}</span></h1>
+          <p>${DB.esc(ct.heroSub)}</p>
+          <a class="btn btn-brand" href="${DB.esc(ct.heroBtnLink || '/shop')}">${DB.esc(ct.heroBtn)}</a>
         </div>
         <div class="hero-visual">
           <div class="hero-blob"></div>
-          <img src="images/bag_8_lavender.jpg" alt="Al Tejarat featured product">
+          <img src="${DB.esc(ct.heroImg)}" alt="Al Tejarat featured product">
           <div class="hero-off"><b>COD</b>AVAILABLE</div>
         </div>
       </div></section>
 
       <div class="wrap"><div class="trustbar">
-        <div class="titem"><span class="ic">🚚</span><div><b>Fast Delivery</b><small>3–5 working days</small></div></div>
-        <div class="titem"><span class="ic">✓</span><div><b>Quality Checked</b><small>Verified products</small></div></div>
-        <div class="titem"><span class="ic">💵</span><div><b>COD Available</b><small>Pay on delivery</small></div></div>
-        <div class="titem"><span class="ic">💬</span><div><b>WhatsApp Support</b><small>Quick response</small></div></div>
+        ${(ct.trust || []).map(t => `<div class="titem"><span class="ic">${DB.esc(t.ic)}</span><div><b>${DB.esc(t.t)}</b><small>${DB.esc(t.s)}</small></div></div>`).join('')}
       </div></div>
 
       ${catCards ? `<section class="section"><div class="wrap">
-        <div class="sec-head center"><span class="dots">• • •</span><h2>Shop By Category</h2><span class="dots">• • •</span></div>
+        <div class="sec-head center"><span class="dots">• • •</span><h2>${DB.esc(ct.catTitle)}</h2><span class="dots">• • •</span></div>
         <div class="cat-row">${catCards}</div>
       </div></section>` : ''}
 
       ${best.length ? `<section class="section"><div class="wrap">
-        <div class="sec-head"><h2>Best Sellers</h2><a class="view-all" href="/shop">View All →</a></div>
+        <div class="sec-head"><h2>${DB.esc(ct.bestTitle)}</h2><a class="view-all" href="/shop">View All →</a></div>
         <div class="bgrid">${best.map(bcardHTML).join('')}</div>
       </div></section>` : ''}
 
@@ -294,7 +333,7 @@
 
       ${followSocial.length ? `<section class="section"><div class="wrap">
         <div class="sec-head center"><span class="dots">• • •</span><h2>Follow Us</h2><span class="dots">• • •</span></div>
-        <p class="sub" style="text-align:center">Nayi products aur offers ke liye humein follow karein!</p>
+        <p class="sub" style="text-align:center">${DB.esc(ct.followSub)}</p>
         <div class="follow-row">${followSocial.map(l => `
           <a class="follow-btn" href="${DB.esc(l.href)}" target="_blank" rel="noopener">
             <span class="fb-ic">${SOC_ICONS[l.k]}</span>
@@ -302,11 +341,9 @@
           </a>`).join('')}</div>
       </div></section>` : ''}
       <section class="section"><div class="wrap">
-        <div class="sec-head center"><span class="dots">• • •</span><h2>How To Order</h2><span class="dots">• • •</span></div>
+        <div class="sec-head center"><span class="dots">• • •</span><h2>${DB.esc(ct.howTitle)}</h2><span class="dots">• • •</span></div>
         <div class="steps">
-          <div class="step"><span class="num">1</span><span class="ic">🛍️</span><h3>Product Pasand Karein</h3><p>Categories browse karein ya search se apni pasand ka product chunein.</p></div>
-          <div class="step"><span class="num">2</span><span class="ic">🛒</span><h3>Order Place Karein</h3><p>Cart mein add karke checkout karein, ya seedha WhatsApp par order bhejein.</p></div>
-          <div class="step"><span class="num">3</span><span class="ic">💵</span><h3>Pay on Delivery</h3><p>Parcel 3–5 din mein aapke darwaze par — payment tabhi karein jab mile.</p></div>
+          ${(ct.steps || []).map((st, i) => `<div class="step"><span class="num">${i + 1}</span><span class="ic">${DB.esc(st.ic)}</span><h3>${DB.esc(st.t)}</h3><p>${DB.esc(st.s)}</p></div>`).join('')}
         </div>
       </div></section>
 
@@ -782,8 +819,14 @@
   };
 
   function vPage(key) {
-    const pg = PAGES[key];
-    if (!pg) { nav('/'); return; }
+    const base = PAGES[key];
+    if (!base) { nav('/'); return; }
+    const cust = ((content().pages || {})[key]) || {};
+    const pg = {
+      title: cust.title || base.title,
+      updated: cust.body ? '' : base.updated,
+      body: cust.body || base.body
+    };
     app.innerHTML = `
       <div class="page">
         <div class="crumbs"><a href="/">Home</a> / ${DB.esc(pg.title)}</div>
@@ -814,6 +857,7 @@
     });
     closeCart();
     window.scrollTo(0, 0);
+    renderFooter();
     initPixel();
     pxEvent('PageView');
     if (h.startsWith('/product/')) vProduct(h.split('/')[2]);
@@ -837,6 +881,7 @@
   });
   document.getElementById('wishBtn').onclick = () => nav('/wishlist');
   renderSocial();
+  renderFooter();
   window.addEventListener('popstate', route);
   updateCartBadge();
   updateWishBadge();

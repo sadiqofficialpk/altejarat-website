@@ -63,7 +63,7 @@
   function go(tab) {
     curTab = tab;
     document.querySelectorAll('.side nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
-    ({ dash: vDash, products: vProducts, categories: vCategories, orders: vOrders, reviews: vReviews, profit: vProfit, settings: vSettings })[tab]();
+    ({ dash: vDash, products: vProducts, categories: vCategories, orders: vOrders, reviews: vReviews, profit: vProfit, content: vContent, settings: vSettings })[tab]();
     window.scrollTo(0, 0);
   }
   // cloud mode: naya order aate hi badge + list refresh
@@ -669,6 +669,134 @@
       DB.saveSettings(upd);
       $('#s_msg').textContent = '✓ Settings save ho gayi.';
       $('#s_p1').value = $('#s_p2').value = '';
+    };
+  }
+
+  /* ---------- website content (poori website ka text yahan se) ---------- */
+  function vContent() {
+    const c = Object.assign({ trust: [], steps: [], pages: {} }, DB.getSettings().content || {});
+    const trust = [0, 1, 2, 3].map(i => Object.assign({ ic: '', t: '', s: '' }, (c.trust || [])[i] || {}));
+    const steps = [0, 1, 2].map(i => Object.assign({ ic: '', t: '', s: '' }, (c.steps || [])[i] || {}));
+    const pgKeys = [['about', 'About Us'], ['contact', 'Contact Us'], ['shipping', 'Shipping Policy'], ['refund', 'Refund Policy'], ['privacy', 'Privacy Policy'], ['terms', 'Terms of Service']];
+    const pages = {};
+    pgKeys.forEach(([k]) => pages[k] = Object.assign({ title: '', body: '' }, (c.pages || {})[k] || {}));
+
+    main.innerHTML = `
+      <h1>📝 Website Content</h1><p class="sub">Website par nazar aane wala <b>tamam text</b> yahan se badlein — khaali chhorne par purana text rahega.</p>
+
+      <div class="form-card"><h3>🎯 Hero Section (sab se upar wala)</h3>
+        <div class="frow">
+          <div><label class="fl">Chhota Badge</label><input class="fi" id="c_herobadge" value="${DB.esc(c.heroBadge || '')}" placeholder="CASH ON DELIVERY"></div>
+          <div><label class="fl">Bari Heading — Line 1</label><input class="fi" id="c_herot1" value="${DB.esc(c.heroTitle1 || '')}" placeholder="Everything You Need,"></div>
+        </div>
+        <div class="frow">
+          <div><label class="fl">Bari Heading — Line 2 (rang wali)</label><input class="fi" id="c_herot2" value="${DB.esc(c.heroTitle2 || '')}" placeholder="Every Day!"></div>
+          <div><label class="fl">Neeche wali line</label><input class="fi" id="c_herosub" value="${DB.esc(c.heroSub || '')}" placeholder="Quality products at honest prices..."></div>
+        </div>
+        <div class="frow">
+          <div><label class="fl">Button ka Text</label><input class="fi" id="c_herobtn" value="${DB.esc(c.heroBtn || '')}" placeholder="EXPLORE COLLECTION →"></div>
+          <div><label class="fl">Button ka Link</label><input class="fi" id="c_herobtnlink" value="${DB.esc(c.heroBtnLink || '')}" placeholder="/shop"></div>
+        </div>
+        <div class="frow">
+          <div><label class="fl">Hero Image</label>
+            <div id="c_heroimg_prev">${c.heroImg ? `<img src="${DB.esc(c.heroImg)}" style="max-width:180px;border-radius:10px;margin-bottom:8px">` : ''}</div>
+            <input type="file" id="c_heroimg_file" accept="image/*" class="fi">
+            <input class="fi" id="c_heroimg" value="${DB.esc(c.heroImg || '')}" placeholder="images/..." style="margin-top:8px">
+          </div>
+          <div><label class="fl">&nbsp;</label><div class="lock" style="margin-top:0">💡 Device se photo select karo — khud upload ho jayegi.</div></div>
+        </div>
+      </div>
+
+      <div class="form-card"><h3>⭐ Trust Bar (hero ke neeche 4 boxes)</h3>
+        ${trust.map((t, i) => `
+        <div class="frow">
+          <div><label class="fl">Box ${i + 1} — Icon (emoji)</label><input class="fi" id="c_trust_ic${i}" value="${DB.esc(t.ic)}" placeholder="🚚"></div>
+          <div><label class="fl">Box ${i + 1} — Title</label><input class="fi" id="c_trust_t${i}" value="${DB.esc(t.t)}" placeholder="Fast Delivery"></div>
+          <div><label class="fl">Box ${i + 1} — Subtitle</label><input class="fi" id="c_trust_s${i}" value="${DB.esc(t.s)}" placeholder="3–5 working days"></div>
+        </div>`).join('')}
+      </div>
+
+      <div class="form-card"><h3>📑 Home Page Headings</h3>
+        <div class="frow">
+          <div><label class="fl">"Shop By Category" heading</label><input class="fi" id="c_cattitle" value="${DB.esc(c.catTitle || '')}" placeholder="Shop By Category"></div>
+          <div><label class="fl">"Best Sellers" heading</label><input class="fi" id="c_besttitle" value="${DB.esc(c.bestTitle || '')}" placeholder="Best Sellers"></div>
+        </div>
+        <div class="frow">
+          <div><label class="fl">"Follow Us" neeche wali line</label><input class="fi" id="c_followsub" value="${DB.esc(c.followSub || '')}" placeholder="Nayi products aur offers ke liye..."></div>
+          <div><label class="fl">"How To Order" heading</label><input class="fi" id="c_howtitle" value="${DB.esc(c.howTitle || '')}" placeholder="How To Order"></div>
+        </div>
+      </div>
+
+      <div class="form-card"><h3>🛒 How To Order (3 steps)</h3>
+        ${steps.map((t, i) => `
+        <div class="frow">
+          <div><label class="fl">Step ${i + 1} — Icon (emoji)</label><input class="fi" id="c_step_ic${i}" value="${DB.esc(t.ic)}" placeholder="🛍️"></div>
+          <div><label class="fl">Step ${i + 1} — Title</label><input class="fi" id="c_step_t${i}" value="${DB.esc(t.t)}" placeholder="Product Pasand Karein"></div>
+          <div><label class="fl">Step ${i + 1} — Text</label><input class="fi" id="c_step_s${i}" value="${DB.esc(t.s)}" placeholder="..."></div>
+        </div>`).join('')}
+      </div>
+
+      <div class="form-card"><h3>🦶 Footer (neeche wala hissa)</h3>
+        <div class="frow">
+          <div><label class="fl">About text</label><textarea class="fi" id="c_footabout" rows="2" placeholder="Everything You Need, Every Day!...">${DB.esc(c.footAbout || '')}</textarea></div>
+          <div><label class="fl">Contact lines (WhatsApp number khud lag jayega)</label><textarea class="fi" id="c_footcontact" rows="2" placeholder="Mon–Sat, 9am – 9pm...">${DB.esc(c.footContactLines || '')}</textarea></div>
+        </div>
+        <div class="frow">
+          <div><label class="fl">Copyright line</label><input class="fi" id="c_footcopy" value="${DB.esc(c.footCopy || '')}" placeholder="© 2026 Al Tejarat. All rights reserved."></div>
+          <div></div>
+        </div>
+      </div>
+
+      <div class="form-card"><h3>📄 Pages (About, Policies...)</h3>
+        <div class="lock" style="margin-bottom:12px">💡 Neeche <b>HTML</b> bhi chalega — heading ke liye <b>&lt;h2&gt;...&lt;/h2&gt;</b>, bold ke liye <b>&lt;strong&gt;...&lt;/strong&gt;</b>. Simple text bhi theek hai.</div>
+        ${pgKeys.map(([k, label]) => `
+        <h4 style="margin:14px 0 8px">${label} <small style="color:var(--mut);font-weight:400">(/ ${k})</small></h4>
+        <div class="frow">
+          <div><label class="fl">Page Title</label><input class="fi" id="c_pg_t_${k}" value="${DB.esc(pages[k].title)}" placeholder="${label}"></div>
+        </div>
+        <label class="fl">Page Content</label>
+        <textarea class="fi" id="c_pg_b_${k}" rows="6" placeholder="Yahan page ka text likhein...">${DB.esc(pages[k].body)}</textarea>`).join('')}
+      </div>
+
+      <div class="row-actions"><button class="btn btn-green" id="c_save">Save Content</button></div>
+      <p class="sub" id="c_msg" style="margin-top:12px"></p>`;
+
+    // hero image upload
+    $('#c_heroimg_file').onchange = async e => {
+      const f = e.target.files[0];
+      e.target.value = '';
+      if (!f) return;
+      $('#c_msg').textContent = '⏳ Image upload ho rahi hai...';
+      try {
+        const url = await DB.uploadImage(f, 'content');
+        $('#c_heroimg').value = url;
+        $('#c_heroimg_prev').innerHTML = `<img src="${DB.esc(url)}" style="max-width:180px;border-radius:10px;margin-bottom:8px">`;
+        $('#c_msg').textContent = '✓ Image ho gayi — ab Save dabao.';
+      } catch (err) { $('#c_msg').textContent = 'Fail: ' + ((err && err.message) || err); }
+    };
+
+    $('#c_save').onclick = () => {
+      const v = id => $( '#' + id).value.trim();
+      const content = {
+        heroBadge: v('c_herobadge'), heroTitle1: v('c_herot1'), heroTitle2: v('c_herot2'),
+        heroSub: v('c_herosub'), heroBtn: v('c_herobtn'), heroBtnLink: v('c_herobtnlink'),
+        heroImg: v('c_heroimg'),
+        trust: [0, 1, 2, 3].map(i => ({ ic: v('c_trust_ic' + i), t: v('c_trust_t' + i), s: v('c_trust_s' + i) })),
+        catTitle: v('c_cattitle'), bestTitle: v('c_besttitle'),
+        followSub: v('c_followsub'), howTitle: v('c_howtitle'),
+        steps: [0, 1, 2].map(i => ({ ic: v('c_step_ic' + i), t: v('c_step_t' + i), s: v('c_step_s' + i) })),
+        footAbout: $('#c_footabout').value.trim(),
+        footContactLines: $('#c_footcontact').value.trim(),
+        footCopy: v('c_footcopy'),
+        pages: {}
+      };
+      pgKeys.forEach(([k]) => {
+        const t = v('c_pg_t_' + k), b = $('#c_pg_b_' + k).value.trim();
+        if (t || b) content.pages[k] = { title: t, body: b };
+      });
+      DB.saveSettings({ content });
+      $('#c_msg').textContent = '✓ Content save ho gaya! Website par dekho.';
+      window.scrollTo(0, 0);
     };
   }
 })();
