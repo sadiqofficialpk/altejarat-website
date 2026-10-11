@@ -17,7 +17,8 @@ const DB = (() => {
     seq: 'altejarat_seq_v1',
     lastSeen: 'altejarat_lastseen_v1',
     categories: 'altejarat_categories_v1',
-    catImages: 'altejarat_cat_images_v1'
+    catImages: 'altejarat_cat_images_v1',
+    reviews: 'altejarat_reviews'
   };
 
   const read = (k, fb) => {
@@ -432,6 +433,68 @@ const DB = (() => {
   /* ================= PUBLIC API (mode-independent) ================= */
 
   const getProducts = () => CLOUD ? C_getProducts() : L_getProducts();
+  const newFirst = arr => arr.slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  /* ---- colors ---- */
+  const COLOR_PALETTE = [
+    {name:'Black',hex:'#222222'},{name:'White',hex:'#f7f7f7'},{name:'Gray',hex:'#808080'},
+    {name:'Silver',hex:'#c0c0c0'},{name:'Brown',hex:'#8b5a2b'},{name:'Chocolate Brown',hex:'#5d3a1a'},
+    {name:'Dark Brown',hex:'#3e2723'},{name:'Tan',hex:'#d2b48c'},{name:'Beige',hex:'#e8dcc4'},
+    {name:'Camel',hex:'#c19a6b'},{name:'Cream',hex:'#fffdd0'},{name:'Ivory',hex:'#fffff0'},
+    {name:'Red',hex:'#d32f2f'},{name:'Maroon',hex:'#7b1e1e'},{name:'Pink',hex:'#f48fb1'},
+    {name:'Rose Pink',hex:'#e75480'},{name:'Hot Pink',hex:'#ff69b4'},{name:'Peach',hex:'#ffcf9e'},
+    {name:'Purple',hex:'#7b1fa2'},{name:'Lavender',hex:'#b57edc'},{name:'Lilac',hex:'#c8a2c8'},
+    {name:'Navy',hex:'#1f2a5a'},{name:'Royal Blue',hex:'#4169e1'},{name:'Blue',hex:'#1976d2'},
+    {name:'Sky Blue',hex:'#87ceeb'},{name:'Teal',hex:'#009688'},{name:'Green',hex:'#388e3c'},
+    {name:'Sage Green',hex:'#9caf88'},{name:'Olive Green',hex:'#6b7c2a'},{name:'Mint Green',hex:'#a8e6b0'},
+    {name:'Yellow',hex:'#fdd835'},{name:'Mustard',hex:'#d4a017'},{name:'Orange',hex:'#fb8c00'},
+    {name:'Gold',hex:'#c9a227'}
+  ];
+  const colorName = c => typeof c === 'string' ? c : ((c && c.name) || '');
+  const colorImg = c => ((c && typeof c === 'object' && c.img) || '');
+  const normColors = p => (p.colors || []).map(c => typeof c === 'string'
+      ? {name: c} : {name: (c && c.name) || '', img: (c && c.img) || ''})
+      .filter(c => c.name);
+  // photo se dominant colors detect karo -> palette ke nearest names
+  function detectColors(imgSrc) {
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const S = 48, c = document.createElement('canvas');
+          c.width = S; c.height = S;
+          const ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, S, S);
+          const d = ctx.getImageData(0, 0, S, S).data;
+          const buckets = {};
+          for (let i = 0; i < d.length; i += 4) {
+            if (d[i+3] < 128) continue;
+            const key = (d[i]>>5) + ',' + (d[i+1]>>5) + ',' + (d[i+2]>>5);
+            const bk = buckets[key] || (buckets[key] = {r:0,g:0,b:0,n:0});
+            bk.r += d[i]; bk.g += d[i+1]; bk.b += d[i+2]; bk.n++;
+          }
+          const pxs = Object.values(buckets)
+            .map(bk => ({r: bk.r/bk.n, g: bk.g/bk.n, b: bk.b/bk.n, n: bk.n}))
+            .sort((a,b) => b.n - a.n).slice(0, 8);
+          const seen = new Set(), out = [];
+          for (const px of pxs) {
+            let best = null, bd = Infinity;
+            for (const pc of COLOR_PALETTE) {
+              const pr = parseInt(pc.hex.slice(1,3),16),
+                    pg = parseInt(pc.hex.slice(3,5),16),
+                    pb = parseInt(pc.hex.slice(5,7),16),
+                    dist = (px.r-pr)**2 + (px.g-pg)**2 + (px.b-pb)**2;
+              if (dist < bd) { bd = dist; best = pc; }
+            }
+            if (best && !seen.has(best.name)) { seen.add(best.name); out.push(best.name); }
+            if (out.length >= 3) break;
+          }
+          resolve(out);
+        } catch (e) { resolve([]); }
+      };
+      img.onerror = () => resolve([]);
+      img.src = imgSrc;
+    });
+  }
   /* ---- SEO slugs: /product/michael-kors-hand-bag ---- */
   function slugify(str) {
     const sl = String(str || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
@@ -452,7 +515,33 @@ const DB = (() => {
     return p;
   }
   const getProduct = id => CLOUD ? C_getProduct(id) : L_getProduct(id);
-  const saveProduct = p => { p = ensureSlug(Object.assign({}, p)); return CLOUD ? C_saveProduct(p) : L_saveProduct(p); };
+  /* ---- reviews ---- */
+  const L_getReviews = pid => read(K.reviews, []).filter(r => !pid || r.productId === pid)
+      .sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+  const L_addReview = r => { const all = read(K.reviews, []); r.id = 'r' + Date.now() + Math.floor(Math.random()*999); r.createdAt = Date.now(); all.unshift(r); write(K.reviews, all); return r; };
+  const L_deleteReview = id => write(K.reviews, read(K.reviews, []).filter(r => r.id !== id));
+  const C_getReviews = async pid => {
+    let q = fdb.collection('reviews');
+    if (pid) q = q.where('productId', '==', pid);
+    const snap = await q.get();
+    return snap.docs.map(d => Object.assign({id: d.id}, d.data()))
+      .sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+  };
+  const C_addReview = async r => {
+    r.createdAt = Date.now();
+    const ref = await fdb.collection('reviews').add(clean(r));
+    r.id = ref.id; return r;
+  };
+  const C_deleteReview = async id => { await fdb.collection('reviews').doc(id).delete(); };
+  const getReviews = pid => CLOUD ? C_getReviews(pid) : Promise.resolve(L_getReviews(pid));
+  const addReview = r => CLOUD ? C_addReview(r) : Promise.resolve(L_addReview(r));
+  const deleteReview = id => CLOUD ? C_deleteReview(id) : Promise.resolve(L_deleteReview(id));
+  const avgRating = revs => {
+    const rs = (revs || []).map(r => +r.rating).filter(x => x >= 1 && x <= 5);
+    if (!rs.length) return 0;
+    return Math.round(rs.reduce((a,b) => a+b, 0) / rs.length * 10) / 10;
+  };
+  const saveProduct = p => { p = ensureSlug(Object.assign({}, p)); if (!p.createdAt) p.createdAt = Date.now(); return CLOUD ? C_saveProduct(p) : L_saveProduct(p); };
   const deleteProduct = id => CLOUD ? C_deleteProduct(id) : L_deleteProduct(id);
 
   const getCosts = () => CLOUD ? C_getCosts() : L_getCosts();
@@ -485,6 +574,13 @@ const DB = (() => {
   const onOrdersChanged = cb => { ordersCb = cb; };
 
   // City-wise delivery fee: Lahore special, everything else standard
+  // andaza delivery date: aaj + 3..5 working days (Sunday skip) — confirm nahi, sirf andaza
+  function estimateDelivery() {
+    const fmt = d => d.getDate() + ' ' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+    const addWork = (from, n) => { const d = new Date(from); let c = 0; while (c < n) { d.setDate(d.getDate()+1); if (d.getDay() !== 0) c++; } return d; };
+    const now = new Date();
+    return fmt(addWork(now, 3)) + ' – ' + fmt(addWork(now, 5));
+  }
   function deliveryFeeFor(city) {
     const s = getSettings();
     const lahore = (s.deliveryLahore !== undefined) ? s.deliveryLahore : 250;
@@ -509,7 +605,7 @@ const DB = (() => {
   // storefront par sirf wahi products: active + jin ki category maujood ho
   const visibleProducts = () => {
     const cats = getCategories();
-    return getProducts().filter(p => p.status !== 'draft' && p.category && cats.includes(p.category));
+    return newFirst(getProducts().filter(p => p.status !== 'draft' && p.category && cats.includes(p.category)));
   };
 
   // profit math (admin only)
@@ -545,10 +641,12 @@ const DB = (() => {
 
   return {
     init, ready: () => CLOUD, isCloud: () => CLOUD, uploadImage, onOrdersChanged,
-    money, esc, CITIES, deliveryFeeFor, productImage, productImages,
+    money, esc, CITIES, deliveryFeeFor, estimateDelivery, productImage, productImages,
+    COLOR_PALETTE, colorName, colorImg, normColors, detectColors,
+    getReviews, addReview, deleteReview, avgRating,
     getCategories, addCategory, renameCategory, deleteCategory, moveCategory,
     getCategoryImage, setCategoryImage,
-    getProducts, getProduct, getProductBySlug, productSlug, saveProduct, deleteProduct, visibleProducts,
+    getProducts, getProduct, getProductBySlug, productSlug, saveProduct, deleteProduct, visibleProducts, newFirst,
     getCosts, setCost,
     nextOrderId, addOrder, getOrders, setOrderStatus,
     getSettings, saveSettings,

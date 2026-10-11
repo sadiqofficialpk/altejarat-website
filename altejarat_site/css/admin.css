@@ -166,3 +166,12 @@ select.status{min-height:40px}
 .img-btns{display:flex; gap:4px; margin-top:4px; justify-content:center; align-items:center}
 .img-btns .btn{padding:4px 8px; font-size:12px}
 .prim-tag{font-size:11px; font-weight:700; color:#b8860b}
+
+/* v32: color rows with images, suggest chips, admin reviews */
+.color-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.color-row .fi{flex:1}
+.cimg-thumb{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.suggest-row{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.suggest-chip{font-size:13px;padding:6px 10px}
+.rev-admin{display:flex;gap:12px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;align-items:flex-start}
+.rev-admin-img{width:60px;height:60px;object-fit:cover;border-radius:8px;flex-shrink:0}

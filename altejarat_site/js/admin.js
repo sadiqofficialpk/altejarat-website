@@ -63,7 +63,7 @@
   function go(tab) {
     curTab = tab;
     document.querySelectorAll('.side nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
-    ({ dash: vDash, products: vProducts, categories: vCategories, orders: vOrders, profit: vProfit, settings: vSettings })[tab]();
+    ({ dash: vDash, products: vProducts, categories: vCategories, orders: vOrders, reviews: vReviews, profit: vProfit, settings: vSettings })[tab]();
     window.scrollTo(0, 0);
   }
   // cloud mode: naya order aate hi badge + list refresh
@@ -158,7 +158,7 @@
       <div class="lock" style="margin-bottom:14px">💡 <b>Draft</b> ya <b>bina category</b> wale products website par nahi dikhenge — status par click karke Active/Draft badlein.</div>
       <div class="tbl-wrap"><table>
         <tr><th></th><th>Product</th><th>Category</th><th>Status</th><th class="num">Selling Price</th><th class="num">Wholesale 🔒</th><th class="num">Profit/pc 🔒</th><th class="num">Stock</th><th></th></tr>
-        ${DB.getProducts().map(p => {
+        ${DB.newFirst(DB.getProducts()).map(p => {
           const c = costs[p.id];
           const hasCost = c !== undefined && c !== '' && !isNaN(Number(c));
           const profit = hasCost ? p.price - Number(c) : null;
@@ -233,32 +233,105 @@
           <div><label class="fl">Stock</label><input class="fi" id="f_stock" type="number" min="0" value="${p.stock}"></div>
         </div>
         <label class="fl">Description</label><textarea class="fi" id="f_desc">${DB.esc(p.description || '')}</textarea>
-        <label class="fl">Colors <small style="color:var(--mut)">(ek-ek karke add karein)</small></label>
+        <label class="fl">Colors <small style="color:var(--mut)">(har color ke saath uski photo bhi laga sakte ho)</small></label>
         <div id="colorRows"></div>
-        <button class="btn btn-ghost" id="addColor" type="button" style="margin-top:8px">＋ Add Color</button>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost" id="addColor" type="button">＋ Add Color</button>
+          <button class="btn btn-ghost" id="detectColors" type="button">🎨 Photo se colors detect karo</button>
+        </div>
+        <div id="colorSuggest" class="suggest-row"></div>
+        <datalist id="colorDatalist">${DB.COLOR_PALETTE.map(c => `<option value="${DB.esc(c.name)}">`).join('')}</datalist>
+        <label class="fl" style="margin-top:12px">Sizes <small style="color:var(--mut)">(jaise 36, 37… ya S, M, L — khaali chhor do agar size nahi hai)</small></label>
+        <div id="sizeRows"></div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost" id="addSize" type="button">＋ Add Size</button>
+          <button class="btn btn-ghost" id="sizePresetFoot" type="button">👟 36–41</button>
+          <button class="btn btn-ghost" id="sizePresetCloth" type="button">👕 S–XL</button>
+        </div>
         <label class="fl"><input type="checkbox" id="f_feat" ${p.featured ? 'checked' : ''}> Home page par featured dikhayein</label>
         <div class="row-actions">
           <button class="btn btn-green" id="f_save">Save Product</button>
           <button class="btn btn-ghost" id="f_cancel">Cancel</button>
         </div>
       </div>`;
+    // colors ab objects hain: {name, img}
+    let colorObjs = DB.normColors(p);
+    if (!colorObjs.length) colorObjs = [{name: ''}];
+    const readColorRows = () => [...$('#colorRows').querySelectorAll('.color-row')].map(row => ({
+      name: row.querySelector('[data-cname]').value.trim(),
+      img: row.querySelector('[data-cimg]').value
+    }));
     const renderColorRows = vals => {
       $('#colorRows').innerHTML = vals.map((c, i) => `
         <div class="color-row">
-          <input class="fi" data-ci="${i}" value="${DB.esc(c)}" placeholder="e.g. Red">
+          <input class="fi" data-cname list="colorDatalist" value="${DB.esc(c.name)}" placeholder="e.g. Red">
+          <input type="hidden" data-cimg value="${DB.esc(c.img || '')}">
+          <img class="cimg-thumb" src="${DB.esc(c.img || '')}" ${c.img ? '' : 'hidden'} alt="">
+          <button class="btn btn-ghost" data-cimgbtn="${i}" type="button" title="Is color ki photo">🖼️</button>
           <button class="btn btn-red" data-rmcolor="${i}" type="button">✕</button>
         </div>`).join('');
+      $('#colorRows').querySelectorAll('[data-cimgbtn]').forEach(b => b.onclick = () => {
+        let fi = document.getElementById('colorImgFile');
+        if (!fi) {
+          fi = document.createElement('input');
+          fi.type = 'file'; fi.accept = 'image/*'; fi.id = 'colorImgFile'; fi.style.display = 'none';
+          document.body.appendChild(fi);
+        }
+        fi.onchange = async e => {
+          const file = e.target.files[0]; fi.value = '';
+          if (!file) return;
+          try {
+            const url = await DB.uploadImage(file, 'colors');
+            const v = readColorRows(); v[+b.dataset.cimgbtn].img = url;
+            renderColorRows(v);
+          } catch (err) { alert('Upload fail: ' + ((err && err.message) || err)); }
+        };
+        fi.click();
+      });
       $('#colorRows').querySelectorAll('[data-rmcolor]').forEach(b => b.onclick = () => {
-        const v = readColorInputs();
+        const v = readColorRows();
         v.splice(+b.dataset.rmcolor, 1);
-        renderColorRows(v);
+        renderColorRows(v.length ? v : [{name: ''}]);
       });
     };
-    // jo colors abhi likhe hue hain, unhein parh lo (taake add/remove par na urein)
-    const readColorInputs = () => [...$('#colorRows').querySelectorAll('[data-ci]')].map(inp => inp.value);
-    let colorVals = colorList.length ? colorList.slice() : [''];
-    renderColorRows(colorVals);
-    $('#addColor').onclick = () => { renderColorRows([...readColorInputs(), '']); };
+    renderColorRows(colorObjs);
+    $('#addColor').onclick = () => { renderColorRows([...readColorRows(), {name: ''}]); };
+    // photo se auto color detect
+    $('#detectColors').onclick = async e => {
+      const btn = e.currentTarget;
+      const mainImg = imgList[0] || '';
+      if (!mainImg) { alert('Pehle product ki photo upload karein.'); return; }
+      btn.disabled = true; const oldT = btn.textContent; btn.textContent = '⏳ Detect ho raha hai...';
+      const found = await DB.detectColors(mainImg);
+      btn.disabled = false; btn.textContent = oldT;
+      const box = $('#colorSuggest');
+      if (!found.length) { box.innerHTML = '<small class="sub">Koi color detect nahi hua.</small>'; return; }
+      box.innerHTML = '<small class="sub">Ye colors mile — Add dabao:</small> ' + found.map(n =>
+        `<button class="btn btn-ghost suggest-chip" data-addcolor="${DB.esc(n)}" type="button">＋ ${DB.esc(n)}</button>`).join(' ');
+      box.querySelectorAll('[data-addcolor]').forEach(b => b.onclick = () => {
+        const v = readColorRows().filter(c => c.name);
+        if (!v.some(c => c.name.toLowerCase() === b.dataset.addcolor.toLowerCase())) v.push({name: b.dataset.addcolor});
+        renderColorRows(v.length ? v : [{name: ''}]);
+        b.disabled = true; b.textContent = '✓ ' + b.dataset.addcolor;
+      });
+    };
+    // ---- sizes ----
+    const readSizeRowsRaw = () => [...$('#sizeRows').querySelectorAll('[data-size]')].map(inp => inp.value);
+    const readSizeRows = () => readSizeRowsRaw().map(x => x.trim()).filter(Boolean);
+    const renderSizeRows = vals => {
+      $('#sizeRows').innerHTML = vals.map((sv, i) => `
+        <div class="color-row">
+          <input class="fi" data-size value="${DB.esc(sv)}" placeholder="e.g. 38 ya M">
+          <button class="btn btn-red" data-rmsize="${i}" type="button">✕</button>
+        </div>`).join('') || '<p class="sub">Koi size nahi — zaroorat ho to add karein.</p>';
+      $('#sizeRows').querySelectorAll('[data-rmsize]').forEach(b => b.onclick = () => {
+        const v = readSizeRowsRaw(); v.splice(+b.dataset.rmsize, 1); renderSizeRows(v);
+      });
+    };
+    renderSizeRows((p.sizes || []).slice());
+    $('#addSize').onclick = () => { renderSizeRows([...readSizeRowsRaw(), '']); };
+    $('#sizePresetFoot').onclick = () => renderSizeRows(['36','37','38','39','40','41']);
+    $('#sizePresetCloth').onclick = () => renderSizeRows(['S','M','L','XL']);
     let imgList = imgList0.slice();
     const renderImgList = () => {
       $('#imgList').innerHTML = imgList.map((u, i) => `
@@ -300,7 +373,7 @@
       const name = $('#f_name').value.trim();
       const price = Number($('#f_price').value);
       if (!name || isNaN(price)) { alert('Naam aur price zaroor likhein.'); return; }
-      colorVals = [...$('#colorRows').querySelectorAll('[data-ci]')].map(inp => inp.value.trim()).filter(Boolean);
+      colorVals = readColorRows().filter(c => c.name);
       DB.saveProduct({
         id: p.id, name, category: $('#f_cat').value.trim(), price,
         status: $('#f_status').value === 'draft' ? 'draft' : 'active',
@@ -309,6 +382,7 @@
         image: imgList[0] || '',
         images: imgList.slice(1),
         colors: colorVals,
+        sizes: readSizeRows(),
         featured: $('#f_feat').checked
       });
       const cv = $('#f_cost').value.trim();
@@ -394,6 +468,34 @@
   }
 
   /* ---------- orders ---------- */
+  async function vReviews() {
+    const main = document.getElementById('main');
+    main.innerHTML = '<h2>⭐ Reviews</h2><p class="sub">Customers ke reviews — delete karne ke liye 🗑️ dabao.</p><div id="revList"><p class="sub">⏳ Load ho raha hai...</p></div>';
+    const render = async () => {
+      const revs = await DB.getReviews();
+      const box = document.getElementById('revList');
+      if (!revs.length) { box.innerHTML = '<p class="sub">Abhi koi review nahi hai.</p>'; return; }
+      const stars = r => '★'.repeat(r) + '☆'.repeat(5 - r);
+      box.innerHTML = revs.map(r => {
+        const prod = DB.getProduct(r.productId);
+        return `<div class="rev-admin">
+          ${r.img ? `<img src="${DB.esc(r.img)}" class="rev-admin-img" alt="">` : ''}
+          <div style="flex:1">
+            <b>${DB.esc(r.name || 'Customer')}</b> <span class="stars">${stars(+r.rating || 5)}</span>
+            <div class="sub">${DB.esc(prod ? prod.name : '')} · ${new Date(r.createdAt || Date.now()).toLocaleDateString('en-GB')}</div>
+            <div>${DB.esc(r.text || '')}</div>
+          </div>
+          <button class="btn btn-red" data-delrev="${DB.esc(r.id)}" type="button">🗑️</button>
+        </div>`;
+      }).join('');
+      box.querySelectorAll('[data-delrev]').forEach(b => b.onclick = async () => {
+        if (!confirm('Ye review delete kar doon?')) return;
+        await DB.deleteReview(b.dataset.delrev);
+        render();
+      });
+    };
+    render();
+  }
   function vOrders() {
     const orders = DB.getOrders();
     main.innerHTML = `

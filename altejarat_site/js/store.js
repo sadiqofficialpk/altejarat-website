@@ -24,17 +24,19 @@
 
   function updateCartBadge() { $('#cartCount').textContent = cartQty(); }
 
-  function addToCart(pid, colorIdx, qty) {
+  function addToCart(pid, colorIdx, sizeIdx, qty) {
     const p = DB.getProduct(pid);
     if (!p || !DB.visibleProducts().some(v => v.id === pid)) return;
     colorIdx = Math.max(0, parseInt(colorIdx, 10) || 0);
     qty = Math.max(1, parseInt(qty, 10) || 1);
-    const colors = (p.colors && p.colors.length) ? p.colors : [''];
-    const colorName = colors[colorIdx] || colors[0] || '';
-    const key = pid + '|' + colorName;
+    const colors = DB.normColors(p);
+    const colorName = colors.length ? colors[colorIdx].name : '';
+    const sizes = (p.sizes || []).filter(Boolean);
+    const sizeName = sizes.length ? (sizes[sizeIdx] || '') : '';
+    const key = pid + '|' + colorName + '|' + sizeName;
     const ex = cart.find(i => i.key === key);
     if (ex) ex.qty += qty;
-    else cart.push({ key, pid, name: p.name, color: colorName, img: DB.productImage(p), price: p.price, qty });
+    else cart.push({ key, pid, name: p.name, color: colorName, size: sizeName, img: DB.productImage(p), price: p.price, qty });
     saveCart(); updateCartBadge(); renderCart(); openCart();
   }
 
@@ -48,7 +50,7 @@
     body.innerHTML = cart.map(i => `
       <div class="ci">
         <img src="${DB.esc(i.img)}" alt="">
-        <div class="ci-info"><b>${DB.esc(i.name)}</b><small>${DB.esc(i.color)} · ${DB.money(i.price)}</small></div>
+        <div class="ci-info"><b>${DB.esc(i.name)}</b><small>${[i.color, i.size].filter(Boolean).map(DB.esc).join(' · ')} · ${DB.money(i.price)}</small></div>
         <div class="ci-qty">
           <button data-dec="${DB.esc(i.key)}">−</button><b>${i.qty}</b><button data-inc="${DB.esc(i.key)}">+</button>
         </div>
@@ -86,7 +88,11 @@
       }
     }
     const add = t.closest('[data-add]');
-    if (add) addToCart(add.dataset.add, 0, 1);
+    if (add) {
+      const qp = DB.getProduct(add.dataset.add);
+      if (qp && (qp.sizes || []).filter(Boolean).length) nav('/product/' + DB.productSlug(qp));
+      else addToCart(add.dataset.add, 0, -1, 1);
+    }
   });
 
   /* ---------- views ---------- */
@@ -196,12 +202,6 @@
     const pick = prods[0];
     const waChat = 'https://wa.me/923348954786?text=' + encodeURIComponent('Assalam-o-Alaikum! Mujhe Al Tejarat se order karna hai.');
 
-    // category showcase banners (first 2 categories that have products)
-    const showcase = cats.map(c => {
-      const items = prods.filter(p => p.category === c);
-      return items.length ? { c, img: DB.getCategoryImage(c) || DB.productImage(items[0]), n: items.length } : null;
-    }).filter(Boolean).slice(0, 2);
-
     const followLinks = getSocialLinks();
     const followSocial = followLinks.filter(l => l.k !== 'whatsapp');
 
@@ -247,19 +247,6 @@
         <div class="bgrid">${best.map(bcardHTML).join('')}</div>
       </div></section>` : ''}
 
-      ${showcase.length ? `<section class="section"><div class="wrap">
-        <div class="sec-head"><h2>Featured Collections</h2><a class="view-all" href="/shop">View All →</a></div>
-        <div class="showcase">${showcase.map(s => `
-          <div class="scard">
-            <img src="${DB.esc(s.img)}" alt="${DB.esc(s.c)}" loading="lazy">
-            <div class="scard-body">
-              <small>${s.n} Products</small>
-              <h3>${DB.esc(s.c)}</h3>
-              <a class="btn-white" href="/shop/${encodeURIComponent(s.c)}">SHOP NOW →</a>
-            </div>
-          </div>`).join('')}</div>
-      </div></section>` : ''}
-
       ${catSections}
 
       <section class="section"><div class="wrap promos">
@@ -276,6 +263,8 @@
           <img class="pick" src="${DB.esc(DB.productImage(pick))}" alt="${DB.esc(pick.name)}">
         </div>` : ''}
       </div></section>
+
+      <div id="homeReviews"></div>
 
       ${followSocial.length ? `<section class="section"><div class="wrap">
         <div class="sec-head center"><span class="dots">• • •</span><h2>Follow Us</h2><span class="dots">• • •</span></div>
@@ -310,6 +299,31 @@
       b.textContent = on ? '♥' : '♡';
     });
     // note: [data-add] buttons document-level handler se handle hote hain (double-add se bachne ke liye yahan dobara bind nahi karte)
+
+
+    // home page customer reviews (latest 6)
+    (async () => {
+      const box = document.getElementById('homeReviews');
+      if (!box) return;
+      try {
+        const revs = (await DB.getReviews()).slice(0, 6);
+        if (!revs.length) return;
+        const starRow = r => '★'.repeat(r) + '☆'.repeat(5 - r);
+        box.innerHTML = `<section class="section"><div class="wrap">
+          <div class="sec-head center"><span class="dots">• • •</span><h2>⭐ Customer Reviews</h2><span class="dots">• • •</span></div>
+          <div class="rev-grid">${revs.map(r => {
+            const prod = DB.getProduct(r.productId);
+            return `<div class="rev-card">
+              ${r.img ? `<img src="${DB.esc(r.img)}" class="rev-card-img" alt="">` : ''}
+              <div class="stars">${starRow(Math.min(5, Math.max(1, +r.rating || 5)))}</div>
+              <p>"${DB.esc((r.text || '').slice(0, 120))}${(r.text || '').length > 120 ? '…' : ''}"</p>
+              <b>${DB.esc(r.name || 'Customer')}</b>
+              ${prod ? `<a class="sub prod-link" href="/product/${DB.esc(DB.productSlug(prod))}">${DB.esc(prod.name)}</a>` : ''}
+            </div>`;
+          }).join('')}</div>
+        </div></section>`;
+      } catch (e) { /* reviews optional */ }
+    })();
   }
 
   /* ---------- header nav ---------- */
@@ -320,6 +334,8 @@
   }
 
   let shopQ = '', shopCat = 'all', shopSort = 'new';
+
+
   function vShop(preCat) {
     if (preCat !== undefined) shopCat = preCat;
     const cats = ['all', ...DB.getCategories()];
@@ -356,52 +372,161 @@
     const p = DB.getProductBySlug(decodeURIComponent(id)) || DB.getProduct(id);
     const hidden = p && !DB.visibleProducts().some(v => v.id === p.id);
     if (!p || hidden) { app.innerHTML = '<div class="wrap section"><div class="empty">Ye product abhi available nahi hai.</div></div>'; return; }
-    const colors = (p.colors && p.colors.length) ? p.colors : [];
+    const colors = DB.normColors(p);
+    const sizes = (p.sizes || []).filter(Boolean);
     const gallery = DB.productImages(p);
-    let ci = 0, qty = 1, gi = 0;
+    let ci = 0, si = -1, qty = 1, gi = 0;
+    const setMain = src => { document.getElementById('pdImg').src = src; };
     app.innerHTML = `
       <div class="wrap"><div class="pd">
-        <div><img class="main" id="pdImg" src="${DB.esc(gallery[0] || '')}" alt="${DB.esc(p.name)}">
+        <div><img class="main zoomable" id="pdImg" src="${DB.esc(gallery[0] || '')}" alt="${DB.esc(p.name)}" title="Bari karne ke liye tap karein">
         ${gallery.length > 1 ? `<div class="thumbs">${gallery.map((g, i) => `<img class="thumb ${i === 0 ? 'on' : ''}" data-gi="${i}" src="${DB.esc(g)}" alt="">`).join('')}</div>` : ''}</div>
         <div class="pd-info">
           <span class="pd-cat">${DB.esc(p.category || '')}</span>
           <h1>${DB.esc(p.name)}</h1>
+          <div class="pd-rating" id="pdRating"></div>
           <div class="pd-price">${DB.money(p.price)}</div>
           <p class="pd-desc">${DB.esc(p.description || '')}</p>
-          ${colors.length ? `<div class="color-name">Color: <b id="colorName">${DB.esc(colors[0])}</b></div>
-          <div class="swatches text-swatches">${colors.map((c, i) => `<button class="tswatch ${i === 0 ? 'on' : ''}" data-ci="${i}">${DB.esc(c)}</button>`).join('')}</div>` : ''}
+          ${colors.length ? `<div class="color-name">Color: <b id="colorName">${DB.esc(colors[0].name)}</b></div>
+          <div class="swatches text-swatches">${colors.map((c, i) => `<button class="tswatch ${i === 0 ? 'on' : ''}" data-ci="${i}">${DB.esc(c.name)}</button>`).join('')}</div>` : ''}
+          ${sizes.length ? `<div class="color-name">Size: <b id="sizeName">Select karein</b></div>
+          <div class="swatches text-swatches">${sizes.map((sv, i) => `<button class="tswatch" data-si="${i}">${DB.esc(sv)}</button>`).join('')}</div>
+          <small id="sizeWarn" class="warn" hidden>⚠️ Pehle size select karein</small>` : ''}
           <div class="qty"><button id="qMinus">−</button><b id="qVal">1</b><button id="qPlus">+</button></div>
           <div class="pd-actions">
             <button class="btn btn-gold" id="pdAdd">Add to Cart</button>
             <button class="btn btn-green" id="pdBuy">Abhi Order Karein</button>
           </div>
-          <div class="note">✓ Cash on Delivery · ✓ 3–5 working days delivery · ✓ WhatsApp par order bhi kar sakte hain</div>
+          <button class="btn btn-ghost" id="pdShare" style="width:100%;margin-top:10px">📤 Share this product</button>
+          <div class="note">✓ Cash on Delivery · ✓ 3–5 working days delivery · ✓ WhatsApp par order bhi kar sakte hain<br>📅 Estimated delivery: <b>${DB.estimateDelivery()}</b> <small>(andaza hai)</small></div>
         </div>
-      </div></div>`;
+      </div>
+      <div id="relWrap"></div>
+      <div id="revWrap" data-all="0"></div>
+      </div>`;
+    // gallery
     document.querySelectorAll('.thumb').forEach(t => t.onclick = () => {
       document.querySelectorAll('.thumb').forEach(x => x.classList.remove('on'));
-      t.classList.add('on'); gi = +t.dataset.gi;
-      document.getElementById('pdImg').src = gallery[gi];
+      t.classList.add('on'); gi = +t.dataset.gi; setMain(gallery[gi]);
     });
-    document.querySelectorAll('.tswatch').forEach(s => s.onclick = () => {
-      document.querySelectorAll('.tswatch').forEach(x => x.classList.remove('on'));
-      s.classList.add('on'); ci = +s.dataset.ci;
-      $('#colorName').textContent = colors[ci];
+    // colors -> naam + us color ki photo
+    document.querySelectorAll('.tswatch[data-ci]').forEach(sw => sw.onclick = () => {
+      document.querySelectorAll('.tswatch[data-ci]').forEach(x => x.classList.remove('on'));
+      sw.classList.add('on'); ci = +sw.dataset.ci;
+      $('#colorName').textContent = colors[ci].name;
+      if (colors[ci].img) { setMain(colors[ci].img); document.querySelectorAll('.thumb').forEach(x => x.classList.remove('on')); }
+      else if (gallery[gi]) setMain(gallery[gi]);
     });
+    // sizes
+    document.querySelectorAll('.tswatch[data-si]').forEach(sw => sw.onclick = () => {
+      document.querySelectorAll('.tswatch[data-si]').forEach(x => x.classList.remove('on'));
+      sw.classList.add('on'); si = +sw.dataset.si;
+      $('#sizeName').textContent = sizes[si];
+      $('#sizeWarn').hidden = true;
+    });
+    // zoom
+    $('#pdImg').onclick = () => {
+      const ov = document.createElement('div');
+      ov.className = 'zoom-ov';
+      ov.innerHTML = `<img src="${DB.esc(document.getElementById('pdImg').src)}" alt="">`;
+      ov.onclick = () => ov.remove();
+      document.body.appendChild(ov);
+    };
+    // share
+    $('#pdShare').onclick = async () => {
+      const url = location.origin + '/product/' + DB.productSlug(p);
+      const text = p.name + ' — ' + DB.money(p.price) + ' (Al Tejarat)';
+      if (navigator.share) { try { await navigator.share({ title: p.name, text, url }); return; } catch (e) { /* cancelled */ } }
+      let panel = document.getElementById('sharePanel');
+      if (panel) { panel.remove(); return; }
+      panel = document.createElement('div');
+      panel.id = 'sharePanel'; panel.className = 'share-panel';
+      panel.innerHTML = `
+        <a class="btn btn-green" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}">WhatsApp par share karein</a>
+        <button class="btn btn-ghost" id="copyLink" type="button">🔗 Link copy karo</button>`;
+      $('#pdShare').after(panel);
+      panel.querySelector('#copyLink').onclick = async () => {
+        try { await navigator.clipboard.writeText(url); panel.querySelector('#copyLink').textContent = '✓ Copy ho gaya!'; }
+        catch (e) { prompt('Ye link copy kar lein:', url); }
+      };
+    };
     $('#qMinus').onclick = () => { qty = Math.max(1, qty - 1); $('#qVal').textContent = qty; };
     $('#qPlus').onclick = () => { qty++; $('#qVal').textContent = qty; };
-    $('#pdAdd').onclick = () => addToCart(p.id, ci, qty);
-    $('#pdBuy').onclick = () => { addToCartSilent(p.id, ci, qty); nav('/checkout'); };
+    const needSize = () => {
+      if (sizes.length && si < 0) { const w = $('#sizeWarn'); w.hidden = false; w.scrollIntoView({ block: 'nearest' }); return true; }
+      return false;
+    };
+    $('#pdAdd').onclick = () => { if (needSize()) return; addToCart(p.id, ci, si, qty); };
+    $('#pdBuy').onclick = () => { if (needSize()) return; addToCartSilent(p.id, ci, si, qty); nav('/checkout'); };
+    // related products
+    const rel = DB.visibleProducts().filter(x => x.id !== p.id && x.category && x.category === p.category).slice(0, 8);
+    if (rel.length) {
+      document.getElementById('relWrap').innerHTML = `
+        <section class="section"><div class="sec-head"><h2>🔗 Related Products</h2><a class="view-all" href="/shop/${encodeURIComponent(p.category)}">View All →</a></div>
+        <div class="bgrid">${rel.map(bcardHTML).join('')}</div></section>`;
+    }
+    // reviews
+    const revWrap = document.getElementById('revWrap');
+    const starRow = r => '★'.repeat(r) + '☆'.repeat(5 - r);
+    const renderReviews = async () => {
+      const revs = await DB.getReviews(p.id);
+      const avg = DB.avgRating(revs);
+      document.getElementById('pdRating').innerHTML = revs.length
+        ? `<span class="stars">${starRow(Math.round(avg))}</span> <b>${avg}</b> <span class="sub">(${revs.length} reviews)</span>`
+        : '<span class="sub">Abhi koi review nahi — pehla review aap dein!</span>';
+      const showAll = revWrap.dataset.all === '1';
+      const list = showAll ? revs : revs.slice(0, 4);
+      revWrap.innerHTML = `
+        <section class="section"><div class="sec-head"><h2>⭐ Customer Reviews (${revs.length})</h2></div>
+        <div class="rev-list">${list.map(r => `
+          <div class="rev">
+            ${r.img ? `<img src="${DB.esc(r.img)}" class="rev-img" alt="">` : ''}
+            <div class="rev-body"><b>${DB.esc(r.name || 'Customer')}</b> <span class="stars">${starRow(Math.min(5, Math.max(1, +r.rating || 5)))}</span>
+            <div class="sub">${new Date(r.createdAt || Date.now()).toLocaleDateString('en-GB')}</div>
+            <div>${DB.esc(r.text || '')}</div></div>
+          </div>`).join('') || '<p class="sub">Abhi koi review nahi hai.</p>'}</div>
+        ${revs.length > 4 ? `<button class="btn btn-ghost" id="revToggle" type="button">${showAll ? 'Kam dekhein ▲' : 'View All Reviews ▼'}</button>` : ''}
+        <h3 style="margin:18px 0 10px">Apna review dein</h3>
+        <div class="rev-form">
+          <input class="fi" id="rvName" placeholder="Aapka naam *">
+          <div class="star-input" id="rvStars">${[1,2,3,4,5].map(i => `<span data-star="${i}" class="${i <= 5 ? 'on' : ''}">★</span>`).join('')}</div>
+          <textarea class="fi" id="rvText" placeholder="Product kaisa laga? *"></textarea>
+          <input type="file" id="rvImg" accept="image/*" class="fi">
+          <button class="btn btn-brand" id="rvSubmit" type="button">Review Submit karein</button>
+        </div></section>`;
+      let rRating = 5;
+      revWrap.querySelectorAll('[data-star]').forEach(sp => sp.onclick = () => {
+        rRating = +sp.dataset.star;
+        revWrap.querySelectorAll('[data-star]').forEach(x => x.classList.toggle('on', +x.dataset.star <= rRating));
+      });
+      const tg = document.getElementById('revToggle');
+      if (tg) tg.onclick = () => { revWrap.dataset.all = revWrap.dataset.all === '1' ? '0' : '1'; renderReviews(); };
+      document.getElementById('rvSubmit').onclick = async () => {
+        const name = document.getElementById('rvName').value.trim();
+        const text = document.getElementById('rvText').value.trim();
+        if (!name || !text) { alert('Naam aur review likhna zaroori hai.'); return; }
+        const btn = document.getElementById('rvSubmit');
+        btn.disabled = true; btn.textContent = '⏳ Submit ho raha hai...';
+        let img = '';
+        const f = document.getElementById('rvImg').files[0];
+        if (f) { try { img = await DB.uploadImage(f, 'reviews'); } catch (e) { /* optional */ } }
+        await DB.addReview({ productId: p.id, name, rating: rRating, text, img });
+        renderReviews();
+      };
+    };
+    renderReviews();
   }
 
-  function addToCartSilent(pid, colorIdx, qty) {
+  function addToCartSilent(pid, colorIdx, sizeIdx, qty) {
     const p = DB.getProduct(pid);
-    const colors = (p.colors && p.colors.length) ? p.colors : [''];
-    const colorName = colors[colorIdx] || colors[0] || '';
-    const key = pid + '|' + colorName;
+    const colors = DB.normColors(p);
+    const colorName = colors.length ? colors[Math.max(0, colorIdx || 0)].name : '';
+    const sizes = (p.sizes || []).filter(Boolean);
+    const sizeName = sizes.length ? (sizes[sizeIdx] || '') : '';
+    const key = pid + '|' + colorName + '|' + sizeName;
     const ex = cart.find(i => i.key === key);
     if (ex) ex.qty += qty;
-    else cart.push({ key, pid, name: p.name, color: colorName, img: DB.productImage(p), price: p.price, qty });
+    else cart.push({ key, pid, name: p.name, color: colorName, size: sizeName, img: DB.productImage(p), price: p.price, qty });
     saveCart(); updateCartBadge();
   }
 
@@ -431,7 +556,7 @@
       const fee = DB.deliveryFeeFor(city);
       const total = cartSubtotal() + fee;
       $('#coLines').innerHTML = `
-        ${cart.map(i => `<div class="tot-row"><span>${DB.esc(i.name)}${i.color ? ' (' + DB.esc(i.color) + ')' : ''} × ${i.qty}</span><span>${DB.money(i.price * i.qty)}</span></div>`).join('')}
+        ${cart.map(i => `<div class="tot-row"><span>${DB.esc(i.name)}${[i.color, i.size].filter(Boolean).map(x => ' (' + DB.esc(x) + ')').join('')} × ${i.qty}</span><span>${DB.money(i.price * i.qty)}</span></div>`).join('')}
         <div class="tot-row"><span>Delivery${city ? ' (' + DB.esc(city) + ')' : ''}</span><span>${DB.money(fee)}</span></div>
         <div class="tot-row grand"><span>Total</span><span>${DB.money(total)}</span></div>`;
     };
@@ -478,7 +603,7 @@
   async function placeOrder(cust) {
     const id = await DB.nextOrderId();
     const fee = DB.deliveryFeeFor(cust.city);
-    const items = cart.map(i => ({ pid: i.pid, name: i.name, color: i.color, price: i.price, qty: i.qty }));
+    const items = cart.map(i => ({ pid: i.pid, name: i.name, color: i.color, size: i.size || '', price: i.price, qty: i.qty }));
     const order = {
       id, date: new Date().toISOString(), customer: cust,
       items, subtotal: cartSubtotal(), delivery: fee,
@@ -500,7 +625,7 @@
       nf.append('customer', cust.name + ' | ' + cust.phone);
       nf.append('phone', cust.phone);
       nf.append('address', fullAddress(cust));
-      nf.append('items', items.map(i => `${i.name}${i.color ? ' (' + i.color + ')' : ''} x${i.qty} = Rs ${i.price * i.qty}`).join('; '));
+      nf.append('items', items.map(i => `${i.name}${[i.color, i.size].filter(Boolean).map(x => ' (' + x + ')').join('')} x${i.qty} = Rs ${i.price * i.qty}`).join('; '));
       nf.append('total', 'Rs ' + order.total);
       fetch('/', { method: 'POST', body: nf }).catch(() => {});
     } catch (e) {}
@@ -510,7 +635,7 @@
       '*New Order — ' + settings().storeName + '*',
       'Order ID: ' + id,
       '--------------------------',
-      ...items.map((it, n) => `${n + 1}. ${it.name}${it.color ? ' (' + it.color + ')' : ''} x${it.qty} — Rs ${(it.price * it.qty).toLocaleString('en-PK')}`),
+      ...items.map((it, n) => `${n + 1}. ${it.name}${[it.color, it.size].filter(Boolean).map(x => ' (' + x + ')').join('')} x${it.qty} — Rs ${(it.price * it.qty).toLocaleString('en-PK')}`),
       '--------------------------',
       'Subtotal: Rs ' + order.subtotal.toLocaleString('en-PK'),
       'Delivery (' + cust.city + '): Rs ' + fee.toLocaleString('en-PK'),

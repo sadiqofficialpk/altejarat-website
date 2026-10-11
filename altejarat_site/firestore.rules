@@ -37,5 +37,13 @@ service cloud.firestore {
       allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
       allow delete: if false;
     }
+
+    match /reviews/{id} {
+      allow read: if true;
+      allow create: if true;
+      // review banne ke baad change nahi ho sakta; delete admin panel se hota hai
+      allow update: if false;
+      allow delete: if true;
+    }
   }
 }
