@@ -612,6 +612,20 @@
           <div><label class="fl">&nbsp;</label><div class="lock" style="margin-top:0">💡 Khali chhoro to wo icon show nahi hoga. WhatsApp icon number se khud ban jata hai.</div></div>
         </div>
       </div>
+      <div class="form-card"><h3>🎯 Home Page Banner <small style="color:var(--mut);font-weight:400">(neeche wala bara banner — khud badal sakte ho)</small></h3>
+        <div class="frow">
+          <div><label class="fl">Chhota Title (uper)</label><input class="fi" id="s_bkick" value="${DB.esc(s.bannerKicker || '')}" placeholder="NEW ARRIVALS"></div>
+          <div><label class="fl">Bara Title</label><input class="fi" id="s_btitle" value="${DB.esc(s.bannerTitle || '')}" placeholder="Nayi Collection Aa Gayi!"></div>
+        </div>
+        <div class="frow">
+          <div><label class="fl">Neeche wali line</label><input class="fi" id="s_bsub" value="${DB.esc(s.bannerSub || '')}" placeholder="Taza products har hafta..."></div>
+          <div><label class="fl">Button ka Text</label><input class="fi" id="s_bbtn" value="${DB.esc(s.bannerBtn || '')}" placeholder="SHOP NOW"></div>
+        </div>
+        <div class="frow">
+          <div><label class="fl">Button ka Link</label><input class="fi" id="s_blink" value="${DB.esc(s.bannerLink || '')}" placeholder="/shop"></div>
+          <div><label class="fl">&nbsp;</label><label style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer"><input type="checkbox" id="s_bshow" ${s.bannerShow === false ? '' : 'checked'} style="width:18px;height:18px"> Banner show karo</label></div>
+        </div>
+      </div>
       <div class="form-card"><h3>📊 TikTok Pixel <small style="color:var(--mut);font-weight:400">(ads ke liye — Events Manager se Pixel ID copy karke yahan paste karein)</small></h3>
         <div class="frow">
           <div><label class="fl">TikTok Pixel ID</label><input class="fi" id="s_pixel" value="${DB.esc(s.tiktokPixel || '')}" placeholder="e.g. D0ABC1234567890"></div>
@@ -643,7 +657,13 @@
         tiktok: $('#s_tt').value.trim(),
         facebook: $('#s_fb').value.trim(),
         instagram: $('#s_ig').value.trim(),
-        tiktokPixel: $('#s_pixel').value.trim()
+        tiktokPixel: $('#s_pixel').value.trim(),
+        bannerKicker: $('#s_bkick').value.trim(),
+        bannerTitle: $('#s_btitle').value.trim(),
+        bannerSub: $('#s_bsub').value.trim(),
+        bannerBtn: $('#s_bbtn').value.trim(),
+        bannerLink: $('#s_blink').value.trim() || '/shop',
+        bannerShow: $('#s_bshow').checked
       };
       if (p1) upd.adminPass = p1;
       DB.saveSettings(upd);

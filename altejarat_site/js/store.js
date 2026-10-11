@@ -278,20 +278,17 @@
 
       ${catSections}
 
-      <section class="section"><div class="wrap promos">
-        <div class="promo promo-a">
-          <div><small>Fast & Easy</small><h3>Order on WhatsApp</h3>
-            <p>Apna order seedha WhatsApp par bhejein — foran jawab, asaan tareeqa.</p>
-            <a class="btn btn-brand" href="${waChat}" target="_blank" rel="noopener">CHAT NOW →</a></div>
-          <span class="big-emoji">💬</span>
+      ${settings().bannerShow === false ? '' : `<section class="section"><div class="wrap">
+        <div class="herobanner">
+          <div class="hb-text">
+            <small>${DB.esc(settings().bannerKicker || 'NEW ARRIVALS')}</small>
+            <h2>${DB.esc(settings().bannerTitle || 'Nayi Collection Aa Gayi!')}</h2>
+            <p>${DB.esc(settings().bannerSub || 'Taza products har hafta — pehle aao, pehle pao. Cash on Delivery available.')}</p>
+            <a class="btn btn-white" href="${DB.esc(settings().bannerLink || '/shop')}">${DB.esc(settings().bannerBtn || 'SHOP NOW')} →</a>
+          </div>
+          <div class="hb-art"><span></span><span></span><span></span></div>
         </div>
-        ${pick ? `<div class="promo promo-b">
-          <div><small>Today's Pick</small><h3>${DB.esc(pick.name)}</h3>
-            <p>${DB.money(pick.price)} — Cash on Delivery</p>
-            <a class="btn btn-brand" href="/product/${DB.esc(DB.productSlug(pick))}">SHOP NOW →</a></div>
-          <img class="pick" src="${DB.esc(DB.productImage(pick))}" alt="${DB.esc(pick.name)}">
-        </div>` : ''}
-      </div></section>
+      </div></section>`}
 
       <div id="homeReviews"></div>
 
