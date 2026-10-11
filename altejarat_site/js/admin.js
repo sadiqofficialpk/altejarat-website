@@ -346,15 +346,20 @@
       $('#imgList').querySelectorAll('[data-mkprim]').forEach(b => b.onclick = () => { const u = imgList.splice(+b.dataset.mkprim, 1)[0]; imgList.unshift(u); renderImgList(); });
     };
     renderImgList();
+    // database ka 1MB limit hai — is liye total size check (count ki koi limit nahi)
+    const imgsTooBig = arr => arr.join('').length > 850000;
     $('#f_imgfile').onchange = async e => {
       const files = [...e.target.files];
       e.target.value = '';
       if (!files.length) return;
-      if (imgList.length + files.length > 6) { alert('Zyada se zyada 6 photos rakh sakte ho.'); return; }
       const msg = $('#f_upmsg');
       msg.textContent = '⏳ Photos taiyar ho rahi hain...';
       for (const file of files) {
-        try { imgList.push(await DB.uploadImage(file, 'products')); }
+        try {
+          const url = await DB.uploadImage(file, 'products');
+          if (imgsTooBig([...imgList, url])) { alert('⚠️ Itni photos ka size zyada ho jayega — database mein save nahi hoga. Pehle 1-2 photos hatao, phir add karo.'); break; }
+          imgList.push(url);
+        }
         catch (err) { alert('Fail: ' + ((err && err.message) || err)); break; }
       }
       msg.textContent = '✅ Ho gayi!';
@@ -363,7 +368,7 @@
     $('#f_addpath').onclick = () => {
       const v = $('#f_imgpath').value.trim();
       if (!v) return;
-      if (imgList.length >= 6) { alert('Zyada se zyada 6 photos rakh sakte ho.'); return; }
+      if (imgsTooBig([...imgList, v])) { alert('⚠️ Photos ka total size zyada ho jayega — database limit hai.'); return; }
       if (!imgList.includes(v)) imgList.push(v);
       $('#f_imgpath').value = '';
       renderImgList();

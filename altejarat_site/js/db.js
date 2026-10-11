@@ -409,7 +409,7 @@ const DB = (() => {
   }
   async function uploadImage(file, folder) {
     if (!file || !file.type.startsWith('image/')) throw new Error('Sirf photo select karein');
-    return await resizeImage(file, 800, 0.72);
+    return await resizeImage(file, 720, 0.68);
   }
 
   /* ================= INIT ================= */
