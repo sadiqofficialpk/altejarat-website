@@ -650,7 +650,10 @@
       const fee = DB.deliveryFeeFor(city);
       const total = cartSubtotal() + fee;
       $('#coLines').innerHTML = `
-        ${cart.map(i => `<div class="tot-row"><span>${DB.esc(i.name)}${[i.color, i.size].filter(Boolean).map(x => ' (' + DB.esc(x) + ')').join('')} × ${i.qty}</span><span>${DB.money(i.price * i.qty)}</span></div>`).join('')}
+        ${cart.map(i => {
+          const im = i.img || (() => { try { const pp = DB.getProduct(i.pid); return pp ? DB.productImage(pp) : ''; } catch (e) { return ''; } })();
+          return `<div class="tot-row"><span class="co-item">${im ? `<img class="co-thumb" src="${DB.esc(im)}" alt="">` : ''}<span>${DB.esc(i.name)}${[i.color, i.size].filter(Boolean).map(x => ' (' + DB.esc(x) + ')').join('')} × ${i.qty}</span></span><span>${DB.money(i.price * i.qty)}</span></div>`;
+        }).join('')}
         <div class="tot-row"><span>Delivery${city ? ' (' + DB.esc(city) + ')' : ''}</span><span>${DB.money(fee)}</span></div>
         <div class="tot-row grand"><span>Total</span><span>${DB.money(total)}</span></div>`;
     };

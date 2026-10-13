@@ -470,3 +470,6 @@ body{overflow-x:clip}
 .hb-art span:nth-child(2){width:200px;height:200px;right:40px}
 .hb-art span:nth-child(3){width:120px;height:120px;right:80px;background:rgba(255,255,255,.08);border:none}
 @media(max-width:640px){.herobanner{padding:36px 24px;min-height:200px}.hb-art{opacity:.5}}
+/* checkout order lines thumbnails */
+.co-item{display:flex;align-items:center;gap:10px}
+.co-thumb{width:46px;height:46px;object-fit:cover;border-radius:10px;border:1px solid var(--line);flex-shrink:0}
