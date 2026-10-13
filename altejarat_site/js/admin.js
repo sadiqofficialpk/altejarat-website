@@ -501,6 +501,11 @@
     };
     render();
   }
+  // order item ki photo: naye orders mein saved hoti hai; purane orders ke liye product se uthao
+  function orderImg(it) {
+    if (it.img) return it.img;
+    try { const p = DB.getProduct(it.pid); return p ? DB.productImage(p) : ''; } catch (e) { return ''; }
+  }
   function vOrders() {
     const orders = DB.getOrders();
     main.innerHTML = `
@@ -512,7 +517,7 @@
           <td><b>${DB.esc(o.id)}</b></td>
           <td>${new Date(o.date).toLocaleString('en-PK')}</td>
           <td>${DB.esc(o.customer.name)}<br><small style="color:var(--mut)">${DB.esc(o.customer.phone)}</small></td>
-          <td>${o.items.reduce((a, i) => a + i.qty, 0)}</td>
+          <td>${o.items.slice(0, 3).map(it => { const im = orderImg(it); return im ? `<img class="pthumb" style="width:38px;height:38px;margin-right:4px;vertical-align:middle" src="${DB.esc(im)}" alt="">` : ''; }).join('')}<b>${o.items.reduce((a, i) => a + i.qty, 0)}</b></td>
           <td class="num">${DB.money(o.total)}</td>
           <td><select class="status" data-st="${o.id}">
             ${['Pending', 'Confirmed', 'Delivered', 'Cancelled'].map(s => `<option ${o.status === s ? 'selected' : ''}>${s}</option>`).join('')}
@@ -533,11 +538,11 @@
             <dt>Address</dt><dd>${DB.esc(addrText(o.customer))}</dd>
           </dl>
           <div class="tbl-wrap"><table>
-            <tr><th>Item</th><th>Color</th><th class="num">Price</th><th class="num">Qty</th><th class="num">Line Total</th></tr>
-            ${o.items.map(i => `<tr><td>${DB.esc(i.name)}</td><td>${DB.esc(i.color || '—')}</td>
-              <td class="num">${DB.money(i.price)}</td><td class="num">${i.qty}</td><td class="num">${DB.money(i.price * i.qty)}</td></tr>`).join('')}
-            <tr><td colspan="4">Delivery</td><td class="num">${DB.money(o.delivery)}</td></tr>
-            <tr class="tot"><td colspan="4">Grand Total</td><td class="num">${DB.money(o.total)}</td></tr>
+            <tr><th></th><th>Item</th><th>Color</th><th>Size</th><th class="num">Price</th><th class="num">Qty</th><th class="num">Line Total</th></tr>
+            ${o.items.map(i => { const im = orderImg(i); return `<tr><td>${im ? `<img class="pthumb" src="${DB.esc(im)}" alt="">` : '—'}</td><td><b>${DB.esc(i.name)}</b></td><td>${DB.esc(i.color || '—')}</td><td>${DB.esc(i.size || '—')}</td>
+              <td class="num">${DB.money(i.price)}</td><td class="num">${i.qty}</td><td class="num">${DB.money(i.price * i.qty)}</td></tr>`; }).join('')}
+            <tr><td colspan="6">Delivery</td><td class="num">${DB.money(o.delivery)}</td></tr>
+            <tr class="tot"><td colspan="6">Grand Total</td><td class="num">${DB.money(o.total)}</td></tr>
           </table></div>
           <div class="row-actions"><button class="btn btn-ghost" id="odClose">Close</button></div>
         </div>`;
@@ -777,22 +782,36 @@
 
     $('#c_save').onclick = () => {
       const v = id => $( '#' + id).value.trim();
-      const content = {
-        heroBadge: v('c_herobadge'), heroTitle1: v('c_herot1'), heroTitle2: v('c_herot2'),
-        heroSub: v('c_herosub'), heroBtn: v('c_herobtn'), heroBtnLink: v('c_herobtnlink'),
-        heroImg: v('c_heroimg'),
-        trust: [0, 1, 2, 3].map(i => ({ ic: v('c_trust_ic' + i), t: v('c_trust_t' + i), s: v('c_trust_s' + i) })),
-        catTitle: v('c_cattitle'), bestTitle: v('c_besttitle'),
-        followSub: v('c_followsub'), howTitle: v('c_howtitle'),
-        steps: [0, 1, 2].map(i => ({ ic: v('c_step_ic' + i), t: v('c_step_t' + i), s: v('c_step_s' + i) })),
-        footAbout: $('#c_footabout').value.trim(),
-        footContactLines: $('#c_footcontact').value.trim(),
-        footCopy: v('c_footcopy'),
-        pages: {}
-      };
+      const prev = DB.getSettings().content || {};
+      // FIX (v40): khaali field ab purane saved text ko blank nahi karega —
+      // blank input ka matlab "purana text rahe" (form ke waade ke mutabiq)
+      const content = Object.assign({}, prev);
+      const strMap = [
+        ['heroBadge', 'c_herobadge'], ['heroTitle1', 'c_herot1'], ['heroTitle2', 'c_herot2'],
+        ['heroSub', 'c_herosub'], ['heroBtn', 'c_herobtn'], ['heroBtnLink', 'c_herobtnlink'],
+        ['heroImg', 'c_heroimg'],
+        ['catTitle', 'c_cattitle'], ['bestTitle', 'c_besttitle'],
+        ['followSub', 'c_followsub'], ['howTitle', 'c_howtitle'],
+        ['footAbout', 'c_footabout'], ['footContactLines', 'c_footcontact'], ['footCopy', 'c_footcopy']
+      ];
+      strMap.forEach(([k, id]) => { const nv = v(id); if (nv !== '') content[k] = nv; });
+      const mergeRow = (nv, ov) => ({
+        ic: nv.ic !== '' ? nv.ic : (ov.ic || ''),
+        t: nv.t !== '' ? nv.t : (ov.t || ''),
+        s: nv.s !== '' ? nv.s : (ov.s || '')
+      });
+      const pTrust = Array.isArray(prev.trust) ? prev.trust : [];
+      content.trust = [0, 1, 2, 3].map(i => mergeRow(
+        { ic: v('c_trust_ic' + i), t: v('c_trust_t' + i), s: v('c_trust_s' + i) }, pTrust[i] || {}));
+      const pSteps = Array.isArray(prev.steps) ? prev.steps : [];
+      content.steps = [0, 1, 2].map(i => mergeRow(
+        { ic: v('c_step_ic' + i), t: v('c_step_t' + i), s: v('c_step_s' + i) }, pSteps[i] || {}));
+      const pPages = prev.pages || {};
+      content.pages = Object.assign({}, pPages);
       pgKeys.forEach(([k]) => {
         const t = v('c_pg_t_' + k), b = $('#c_pg_b_' + k).value.trim();
-        if (t || b) content.pages[k] = { title: t, body: b };
+        const o = pPages[k] || {};
+        if (t || b || o.title || o.body) content.pages[k] = { title: t || o.title || '', body: b || o.body || '' };
       });
       DB.saveSettings({ content });
       $('#c_msg').textContent = '✓ Content save ho gaya! Website par dekho.';

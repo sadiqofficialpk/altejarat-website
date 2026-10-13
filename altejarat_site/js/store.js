@@ -31,7 +31,29 @@
     footCopy: '© 2026 Al Tejarat. All rights reserved.',
     pages: {}
   };
-  const content = () => Object.assign({}, DEFAULT_CONTENT, (settings().content || {}));
+  const content = () => {
+    // FIX (v40): blank/empty saved values ab defaults ko overwrite nahi karte —
+    // khaali field ka matlab "purana/default text rahe" (admin form ke waade ke mutabiq).
+    // Ye purani v39 saves ko bhi self-heal karta hai.
+    const saved = settings().content || {};
+    const out = Object.assign({}, DEFAULT_CONTENT);
+    Object.keys(DEFAULT_CONTENT).forEach(k => {
+      if (k === 'trust' || k === 'steps') {
+        const sArr = Array.isArray(saved[k]) ? saved[k] : [];
+        out[k] = DEFAULT_CONTENT[k].map((d, i) => {
+          const s = sArr[i] || {};
+          const pick = f => (s[f] !== undefined && s[f] !== null && String(s[f]).trim() !== '') ? s[f] : d[f];
+          return { ic: pick('ic'), t: pick('t'), s: pick('s') };
+        });
+      } else if (k === 'pages') {
+        out[k] = Object.assign({}, saved.pages || {});
+      } else {
+        const sv = saved[k];
+        out[k] = (sv !== undefined && sv !== null && String(sv).trim() !== '') ? sv : DEFAULT_CONTENT[k];
+      }
+    });
+    return out;
+  };
   /* ---- TikTok pixel ---- */
   let pixelReady = false;
   function initPixel() {
@@ -674,7 +696,7 @@
   async function placeOrder(cust) {
     const id = await DB.nextOrderId();
     const fee = DB.deliveryFeeFor(cust.city);
-    const items = cart.map(i => ({ pid: i.pid, name: i.name, color: i.color, size: i.size || '', price: i.price, qty: i.qty }));
+    const items = cart.map(i => ({ pid: i.pid, name: i.name, color: i.color, size: i.size || '', price: i.price, qty: i.qty, img: i.img || '' }));
     const order = {
       id, date: new Date().toISOString(), customer: cust,
       items, subtotal: cartSubtotal(), delivery: fee,
@@ -702,11 +724,18 @@
     } catch (e) {}
 
     // WhatsApp message from the CUSTOMER's own WhatsApp
+    // (wa.me sirf text bhej sakta hai — image attach nahi hoti — is liye har item ke neeche product ka link taake tap karke photo dekhi ja sake)
+    const itemLines = [];
+    items.forEach((it, n) => {
+      itemLines.push(`${n + 1}. ${it.name}${[it.color, it.size].filter(Boolean).map(x => ' (' + x + ')').join('')} x${it.qty} — Rs ${(it.price * it.qty).toLocaleString('en-PK')}`);
+      const pp = DB.getProduct(it.pid);
+      if (pp) itemLines.push('   👆 ' + location.origin + '/product/' + DB.productSlug(pp));
+    });
     const lines = [
       '*New Order — ' + settings().storeName + '*',
       'Order ID: ' + id,
       '--------------------------',
-      ...items.map((it, n) => `${n + 1}. ${it.name}${[it.color, it.size].filter(Boolean).map(x => ' (' + x + ')').join('')} x${it.qty} — Rs ${(it.price * it.qty).toLocaleString('en-PK')}`),
+      ...itemLines,
       '--------------------------',
       'Subtotal: Rs ' + order.subtotal.toLocaleString('en-PK'),
       'Delivery (' + cust.city + '): Rs ' + fee.toLocaleString('en-PK'),
