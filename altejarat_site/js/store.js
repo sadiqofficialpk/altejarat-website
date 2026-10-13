@@ -104,7 +104,7 @@
 
   function updateCartBadge() { $('#cartCount').textContent = cartQty(); }
 
-  function addToCart(pid, colorIdx, sizeIdx, qty) {
+  function addToCart(pid, colorIdx, sizeIdx, qty, imgOverride) {
     const p = DB.getProduct(pid);
     if (!p || !DB.visibleProducts().some(v => v.id === pid)) return;
     colorIdx = Math.max(0, parseInt(colorIdx, 10) || 0);
@@ -116,7 +116,7 @@
     const key = pid + '|' + colorName + '|' + sizeName;
     const ex = cart.find(i => i.key === key);
     if (ex) ex.qty += qty;
-    else cart.push({ key, pid, name: p.name, color: colorName, size: sizeName, img: DB.productImage(p), price: p.price, qty });
+    else cart.push({ key, pid, name: p.name, color: colorName, size: sizeName, img: imgOverride || DB.productImage(p), price: p.price, qty });
     saveCart(); updateCartBadge(); renderCart(); openCart();
     pxEvent('AddToCart', { content_id: pid, content_name: p.name, price: Number(p.price) || 0, quantity: qty, currency: 'PKR' });
   }
@@ -461,6 +461,7 @@
     const sizes = (p.sizes || []).filter(Boolean);
     const gallery = DB.productImages(p);
     let ci = 0, si = -1, qty = 1, gi = 0;
+    let curImg = gallery[0] || ''; // customer jo photo dekh raha hai — wahi order mein jayegi
     const setMain = src => { document.getElementById('pdImg').src = src; };
     app.innerHTML = `
       <div class="wrap"><div class="pd">
@@ -492,15 +493,15 @@
     // gallery
     document.querySelectorAll('.thumb').forEach(t => t.onclick = () => {
       document.querySelectorAll('.thumb').forEach(x => x.classList.remove('on'));
-      t.classList.add('on'); gi = +t.dataset.gi; setMain(gallery[gi]);
+      t.classList.add('on'); gi = +t.dataset.gi; setMain(gallery[gi]); curImg = gallery[gi];
     });
     // colors -> naam + us color ki photo
     document.querySelectorAll('.tswatch[data-ci]').forEach(sw => sw.onclick = () => {
       document.querySelectorAll('.tswatch[data-ci]').forEach(x => x.classList.remove('on'));
       sw.classList.add('on'); ci = +sw.dataset.ci;
       $('#colorName').textContent = colors[ci].name;
-      if (colors[ci].img) { setMain(colors[ci].img); document.querySelectorAll('.thumb').forEach(x => x.classList.remove('on')); }
-      else if (gallery[gi]) setMain(gallery[gi]);
+      if (colors[ci].img) { setMain(colors[ci].img); curImg = colors[ci].img; document.querySelectorAll('.thumb').forEach(x => x.classList.remove('on')); }
+      else if (gallery[gi]) { setMain(gallery[gi]); curImg = gallery[gi]; }
     });
     // sizes
     document.querySelectorAll('.tswatch[data-si]').forEach(sw => sw.onclick = () => {
@@ -541,8 +542,8 @@
       if (sizes.length && si < 0) { const w = $('#sizeWarn'); w.hidden = false; w.scrollIntoView({ block: 'nearest' }); return true; }
       return false;
     };
-    $('#pdAdd').onclick = () => { if (needSize()) return; addToCart(p.id, ci, si, qty); };
-    $('#pdBuy').onclick = () => { if (needSize()) return; addToCartSilent(p.id, ci, si, qty); nav('/checkout'); };
+    $('#pdAdd').onclick = () => { if (needSize()) return; addToCart(p.id, ci, si, qty, curImg); };
+    $('#pdBuy').onclick = () => { if (needSize()) return; addToCartSilent(p.id, ci, si, qty, curImg); nav('/checkout'); };
     // related products
     const rel = DB.visibleProducts().filter(x => x.id !== p.id && x.category && x.category === p.category).slice(0, 8);
     if (rel.length) {
@@ -609,7 +610,7 @@
     pxEvent('ViewContent', { content_id: p.id, content_name: p.name, price: Number(p.price) || 0, currency: 'PKR' });
   }
 
-  function addToCartSilent(pid, colorIdx, sizeIdx, qty) {
+  function addToCartSilent(pid, colorIdx, sizeIdx, qty, imgOverride) {
     const p = DB.getProduct(pid);
     const colors = DB.normColors(p);
     const colorName = colors.length ? colors[Math.max(0, colorIdx || 0)].name : '';
@@ -618,7 +619,7 @@
     const key = pid + '|' + colorName + '|' + sizeName;
     const ex = cart.find(i => i.key === key);
     if (ex) ex.qty += qty;
-    else cart.push({ key, pid, name: p.name, color: colorName, size: sizeName, img: DB.productImage(p), price: p.price, qty });
+    else cart.push({ key, pid, name: p.name, color: colorName, size: sizeName, img: imgOverride || DB.productImage(p), price: p.price, qty });
     saveCart(); updateCartBadge();
   }
 

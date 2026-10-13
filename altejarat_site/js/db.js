@@ -96,9 +96,11 @@ const DB = (() => {
     products.forEach(p => {
       if (!p.status) { p.status = 'active'; changed = true; }
       if (p.colors && p.colors.length && typeof p.colors[0] === 'object') {
-        p.image = (p.colors[0] && p.colors[0].img) || p.image || '';
-        p.colors = p.colors.map(c => (c && c.name) || '').filter(Boolean);
-        changed = true;
+        // bahut purana data: image colors[0].img mein thi — sirf tab lao jab p.image khaali ho
+        if (!p.image && p.colors[0].img) { p.image = p.colors[0].img; changed = true; }
+        // v32+: {name, img} format barkarar rakho — img mat urao!
+        const norm = p.colors.map(c => typeof c === 'string' ? { name: c, img: '' } : { name: (c && c.name) || '', img: (c && c.img) || '' }).filter(c => c.name);
+        if (JSON.stringify(norm) !== JSON.stringify(p.colors)) { p.colors = norm; changed = true; }
       }
       if (!Array.isArray(p.colors)) { p.colors = []; changed = true; }
     });
