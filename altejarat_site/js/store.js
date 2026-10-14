@@ -137,14 +137,11 @@
         </div>
         <button class="ci-rm" data-rm="${DB.esc(i.key)}">Remove</button>
       </div>`).join('');
-    const s = settings();
-    const lahoreFee = (s.deliveryLahore !== undefined) ? s.deliveryLahore : 250;
-    const otherFee = (s.deliveryOther !== undefined) ? s.deliveryOther : 350;
     foot.innerHTML = `
       <div class="tot-row"><span>Subtotal</span><span>${DB.money(cartSubtotal())}</span></div>
       <div class="tot-row"><span>Delivery</span><span class="at-checkout">at checkout</span></div>
       <div class="tot-row grand"><span>Total</span><span>${DB.money(cartSubtotal())}<small> + delivery</small></span></div>
-      <div class="del-note">* Delivery: Lahore ${DB.money(lahoreFee)}, other cities ${DB.money(otherFee)}</div>
+      <div class="del-note">* Delivery charges sheher ke hisaab se checkout par lagengi</div>
       <a class="btn btn-green" style="width:100%;text-align:center;margin-top:10px" href="/checkout">Checkout →</a>`;
   }
 

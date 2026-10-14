@@ -583,11 +583,30 @@ const DB = (() => {
     const now = new Date();
     return fmt(addWork(now, 3)) + ' – ' + fmt(addWork(now, 5));
   }
+  // City-wise delivery charges: settings.deliveryRules mein har line "Sheher: Fee"
+  function parseDeliveryRules(text) {
+    const map = {};
+    String(text || '').split('\n').forEach(line => {
+      const idx = line.indexOf(':');
+      if (idx < 0) return;
+      const city = line.slice(0, idx).trim().toLowerCase();
+      const fee = parseInt(line.slice(idx + 1).trim(), 10);
+      if (city && !isNaN(fee) && fee >= 0) map[city] = fee;
+    });
+    return map;
+  }
+  let dRulesCache = null, dRulesText = null;
   function deliveryFeeFor(city) {
     const s = getSettings();
-    const lahore = (s.deliveryLahore !== undefined) ? s.deliveryLahore : 250;
-    const other = (s.deliveryOther !== undefined) ? s.deliveryOther : 350;
-    return (String(city || '').trim().toLowerCase() === 'lahore') ? lahore : other;
+    const txt = s.deliveryRules || '';
+    if (txt !== dRulesText) { dRulesCache = parseDeliveryRules(txt); dRulesText = txt; }
+    const key = String(city || '').trim().toLowerCase();
+    if (key && dRulesCache[key] !== undefined) return dRulesCache[key];
+    if (s.deliveryDefault !== undefined) return s.deliveryDefault;
+    // purani settings ka fallback (Lahore/Baqi)
+    if (key === 'lahore' && s.deliveryLahore !== undefined) return s.deliveryLahore;
+    if (s.deliveryOther !== undefined) return s.deliveryOther;
+    return 350;
   }
 
   function productImage(p) {

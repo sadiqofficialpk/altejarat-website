@@ -175,3 +175,10 @@ select.status{min-height:40px}
 .suggest-chip{font-size:13px;padding:6px 10px}
 .rev-admin{display:flex;gap:12px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;align-items:flex-start}
 .rev-admin-img{width:60px;height:60px;object-fit:cover;border-radius:8px;flex-shrink:0}
+
+/* naye order ki notification popup */
+#orderToasts{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:10px}
+.order-toast{background:#15803d;color:#fff;padding:14px 18px;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.28);cursor:pointer;max-width:320px;font-size:14px;line-height:1.5;animation:tin .3s ease}
+.order-toast small{opacity:.85}
+.order-toast.out{opacity:0;transform:translateX(24px);transition:all .5s}
+@keyframes tin{from{opacity:0;transform:translateY(-12px)}}

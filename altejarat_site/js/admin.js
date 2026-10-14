@@ -44,7 +44,10 @@
   /* ---------- login ---------- */
   const authed = () => sessionStorage.getItem('altejarat_admin') === '1';
   function showLogin() { $('#loginWrap').hidden = false; $('#panel').hidden = true; }
-  function showPanel() { $('#loginWrap').hidden = true; $('#panel').hidden = false; go('dash'); refreshBadges(); }
+  function showPanel() {
+    $('#loginWrap').hidden = true; $('#panel').hidden = false; go('dash'); refreshBadges();
+    try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch (e) {}
+  }
 
   $('#loginForm').onsubmit = e => {
     e.preventDefault();
@@ -66,9 +69,59 @@
     ({ dash: vDash, products: vProducts, categories: vCategories, orders: vOrders, reviews: vReviews, profit: vProfit, content: vContent, settings: vSettings })[tab]();
     window.scrollTo(0, 0);
   }
-  // cloud mode: naya order aate hi badge + list refresh
+  // ---- naye order ki notification: sound + popup + browser notification ----
+  let knownOrderIds = null;
+  function playOrderSound() {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      const ctx = new AC();
+      [0, 0.3, 0.6].forEach(t => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'sine'; o.frequency.value = 880;
+        const s = ctx.currentTime + t;
+        g.gain.setValueAtTime(0.0001, s);
+        g.gain.exponentialRampToValueAtTime(0.4, s + 0.05);
+        g.gain.exponentialRampToValueAtTime(0.0001, s + 0.25);
+        o.start(s); o.stop(s + 0.3);
+      });
+    } catch (e) {}
+  }
+  function orderToast(o) {
+    let box = document.getElementById('orderToasts');
+    if (!box) { box = document.createElement('div'); box.id = 'orderToasts'; document.body.appendChild(box); }
+    const t = document.createElement('div');
+    t.className = 'order-toast';
+    t.innerHTML = `🔔 <b>New Order ${DB.esc(o.id)}</b><br>${DB.esc(o.customer.name)} — ${DB.money(o.total)}<br><small>Tap karein — Orders khulenge</small>`;
+    t.onclick = () => { t.remove(); go('orders'); };
+    box.appendChild(t);
+    setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 500); }, 8000);
+  }
+  function notifyNewOrder(o) {
+    playOrderSound();
+    orderToast(o);
+    try {
+      if ('Notification' in window && Notification.permission === 'granted')
+        new Notification('🔔 New Order ' + o.id, { body: (o.customer.name || '') + ' — ' + DB.money(o.total) });
+    } catch (e) {}
+    try {
+      const orig = document.title;
+      document.title = '🔔 New Order ' + o.id + '!';
+      setTimeout(() => { document.title = orig; }, 10000);
+    } catch (e) {}
+  }
+  function checkNewOrders() {
+    const orders = DB.getOrders();
+    const ids = new Set(orders.map(o => o.id));
+    if (knownOrderIds === null) { knownOrderIds = ids; return; } // pehli load par notify nahi
+    orders.filter(o => !knownOrderIds.has(o.id)).forEach(notifyNewOrder);
+    knownOrderIds = ids;
+  }
+  // cloud mode: naya order aate hi badge + list refresh + notification
   DB.onOrdersChanged(() => {
     refreshBadges();
+    checkNewOrders();
     if (curTab === 'orders' || curTab === 'dash') go(curTab);
   });
   // cloud badge
@@ -602,10 +655,11 @@
           <div><label class="fl">Announcement Bar (home page ke upar)</label><input class="fi" id="s_ann" value="${DB.esc(s.announcements || '')}"></div>
         </div>
         <div class="frow">
-          <div><label class="fl">Delivery Fee — Lahore (Rs)</label><input class="fi" id="s_fee_lhr" type="number" min="0" value="${s.deliveryLahore !== undefined ? s.deliveryLahore : 250}"></div>
-          <div><label class="fl">Delivery Fee — Baqi Cities (Rs)</label><input class="fi" id="s_fee_oth" type="number" min="0" value="${s.deliveryOther !== undefined ? s.deliveryOther : 350}"></div>
+          <div style="grid-column:1/-1"><label class="fl">City-wise Delivery Charges <small style="color:var(--mut)">(har line par likhein: Sheher: Fee — naam wohi jo checkout mein hai)</small></label>
+            <textarea class="fi" id="s_fee_rules" rows="5" placeholder="Lahore: 250&#10;Karachi: 300&#10;Islamabad: 300">${DB.esc(s.deliveryRules !== undefined ? s.deliveryRules : ('Lahore: ' + (s.deliveryLahore !== undefined ? s.deliveryLahore : 250)))}</textarea></div>
+          <div><label class="fl">Baqi Shehron ki Fee (Rs) <small style="color:var(--mut)">(jo sheher upar na ho)</small></label><input class="fi" id="s_fee_def" type="number" min="0" value="${s.deliveryDefault !== undefined ? s.deliveryDefault : (s.deliveryOther !== undefined ? s.deliveryOther : 350)}"></div>
         </div>
-        <div class="lock">💡 Checkout par city select hote hi delivery fee <b>khud</b> lag jayegi — Lahore wali ya baqi cities wali.</div>
+        <div class="lock">💡 Checkout par sheher select hote hi uski fee <b>khud</b> lag jayegi — jo sheher upar list mein nahi, us par "Baqi Shehron ki Fee" lagegi.</div>
       </div>
       <div class="form-card"><h3>📱 Social Media Links <small style="color:var(--mut);font-weight:400">(footer mein icons ke saath show honge)</small></h3>
         <div class="frow">
@@ -656,8 +710,8 @@
         storeName: $('#s_name').value.trim() || 'Al Tejarat',
         tagline: $('#s_tag').value.trim(),
         whatsapp: $('#s_wa').value.replace(/\D/g, '') || s.whatsapp,
-        deliveryLahore: Math.max(0, Number($('#s_fee_lhr').value) || 0),
-        deliveryOther: Math.max(0, Number($('#s_fee_oth').value) || 0),
+        deliveryRules: $('#s_fee_rules').value,
+        deliveryDefault: Math.max(0, Number($('#s_fee_def').value) || 0),
         announcements: $('#s_ann').value.trim(),
         tiktok: $('#s_tt').value.trim(),
         facebook: $('#s_fb').value.trim(),
