@@ -1,5 +1,0 @@
-# Al Tejarat — Netlify config
-[build]
-  publish = "."
-
-# No build step needed: plain HTML/CSS/JS, deploys as-is.
