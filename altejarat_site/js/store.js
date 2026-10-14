@@ -827,10 +827,7 @@
       <h2>1. Delivery time</h2>
       <p>Orders <strong>3–5 working days</strong> mein deliver ho jate hain (Sunday off hota hai).</p>
       <h2>2. Delivery charges</h2>
-      <ul>
-        <li><strong>Lahore:</strong> Rs 250</li>
-        <li><strong>Out of city:</strong> Rs 300 – 350</li>
-      </ul>
+      {{delivery_fees}}
       <p>Delivery charges order total mein pehle se shamil hote hain — koi hidden charges nahi.</p>
       <h2>3. Cash on Delivery</h2>
       <p>Payment parcel milne par cash mein hogi. Baraye meherbani parcel lete waqt raqam tayyar rakhein.</p>
@@ -848,6 +845,13 @@
       <p>Ghalat maloomat de kar order karna ya system ka ghalat istemal mana hai. Aise orders cancel kiye ja sakte hain.</p>` }
   };
 
+  function deliveryFeesTable() {
+    const dr = DB.deliveryRules();
+    const cap = c => c.charAt(0).toUpperCase() + c.slice(1);
+    const rows = Object.keys(dr.rules).sort().map(c =>
+      `<tr><td>${DB.esc(cap(c))}</td><td>${DB.money(dr.rules[c])}</td></tr>`).join('');
+    return `<table class="fee-table"><tr><th>Sheher</th><th>Delivery Fee</th></tr>${rows}<tr><td>Baqi tamam sheher</td><td>${DB.money(dr.def)}</td></tr></table>`;
+  }
   function vPage(key) {
     const base = PAGES[key];
     if (!base) { nav('/'); return; }
@@ -857,6 +861,7 @@
       updated: cust.body ? '' : base.updated,
       body: cust.body || base.body
     };
+    if (pg.body.includes('{{delivery_fees}}')) pg.body = pg.body.split('{{delivery_fees}}').join(deliveryFeesTable());
     app.innerHTML = `
       <div class="page">
         <div class="crumbs"><a href="/">Home</a> / ${DB.esc(pg.title)}</div>

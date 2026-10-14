@@ -473,3 +473,7 @@ body{overflow-x:clip}
 /* checkout order lines thumbnails */
 .co-item{display:flex;align-items:center;gap:10px}
 .co-thumb{width:46px;height:46px;object-fit:cover;border-radius:10px;border:1px solid var(--line);flex-shrink:0}
+/* shipping page delivery fee table */
+.fee-table{width:100%;border-collapse:collapse;margin:12px 0;font-size:15px}
+.fee-table th,.fee-table td{border:1px solid var(--line);padding:9px 14px;text-align:left}
+.fee-table th{background:#f4f4f4;font-weight:700}

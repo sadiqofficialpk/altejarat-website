@@ -596,6 +596,19 @@ const DB = (() => {
     return map;
   }
   let dRulesCache = null, dRulesText = null;
+  function deliveryRules() {
+    const s = getSettings();
+    const txt = s.deliveryRules || '';
+    if (txt !== dRulesText) { dRulesCache = parseDeliveryRules(txt); dRulesText = txt; }
+    const map = Object.assign({}, dRulesCache);
+    if (!txt) {
+      if (s.deliveryLahore !== undefined) map['lahore'] = s.deliveryLahore;
+      else if (map['lahore'] === undefined) map['lahore'] = 250;
+    }
+    const def = (s.deliveryDefault !== undefined) ? s.deliveryDefault
+      : (s.deliveryOther !== undefined ? s.deliveryOther : 350);
+    return { rules: map, def };
+  }
   function deliveryFeeFor(city) {
     const s = getSettings();
     const txt = s.deliveryRules || '';
@@ -662,7 +675,7 @@ const DB = (() => {
 
   return {
     init, ready: () => CLOUD, isCloud: () => CLOUD, uploadImage, onOrdersChanged,
-    money, esc, CITIES, deliveryFeeFor, estimateDelivery, productImage, productImages,
+    money, esc, CITIES, deliveryFeeFor, deliveryRules, estimateDelivery, productImage, productImages,
     COLOR_PALETTE, colorName, colorImg, normColors, detectColors,
     getReviews, addReview, deleteReview, avgRating,
     getCategories, addCategory, renameCategory, deleteCategory, moveCategory,
