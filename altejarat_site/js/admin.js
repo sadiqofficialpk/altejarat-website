@@ -810,7 +810,7 @@
       <div class="form-card"><h3>📄 Pages (About, Policies...)</h3>
         <div class="lock" style="margin-bottom:12px">💡 Neeche <b>HTML</b> bhi chalega — heading ke liye <b>&lt;h2&gt;...&lt;/h2&gt;</b>, bold ke liye <b>&lt;strong&gt;...&lt;/strong&gt;</b>. Simple text bhi theek hai.</div>
         ${pgKeys.map(([k, label]) => `
-        <h4 style="margin:14px 0 8px">${label} <small style="color:var(--mut);font-weight:400">(/ ${k})</small></h4>
+        <h4 style="margin:14px 0 8px">${label} <small style="color:var(--mut);font-weight:400">(/ ${k})</small> <button class="btn btn-ghost" id="c_pg_reset_${k}" style="padding:4px 12px;font-size:12px;margin-left:8px">↺ Default</button></h4>
         <div class="frow">
           <div><label class="fl">Page Title</label><input class="fi" id="c_pg_t_${k}" value="${DB.esc(pages[k].title)}" placeholder="${label}"></div>
         </div>
@@ -873,5 +873,21 @@
       $('#c_msg').textContent = cOk ? '✓ Content save ho gaya! Website par dekho.' : '✗ Save nahi hua — internet check karke dobara try karo.';
       if (cOk) window.scrollTo(0, 0);
     };
+
+    // FIX (v48): har page ka "Default" button — custom text delete karke default wapas.
+    // (Khaali karke Save dabane se purana text rehta hai — yehi v40 ka waada tha — is liye alag button.)
+    pgKeys.forEach(([k, label]) => {
+      $('#c_pg_reset_' + k).onclick = async () => {
+        if (!confirm('"' + label + '" ka apna likha text delete ho jayega aur default text wapas aa jayega. Pakka?')) return;
+        const prev = DB.getSettings().content || {};
+        const content = Object.assign({}, prev);
+        content.pages = Object.assign({}, prev.pages || {});
+        delete content.pages[k];
+        $('#c_msg').textContent = '⏳ Default wapas aa raha hai...';
+        const ok = await DB.saveSettings({ content });
+        if (ok) { vContent(); $('#c_msg').textContent = '✓ "' + label + '" default par wapas aa gaya.'; window.scrollTo(0, 0); }
+        else $('#c_msg').textContent = '✗ Reset nahi hua — internet check karke dobara try karo.';
+      };
+    });
   }
 })();
