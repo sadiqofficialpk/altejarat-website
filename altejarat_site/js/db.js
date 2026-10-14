@@ -143,7 +143,7 @@ const DB = (() => {
   };
 
   const L_getSettings = () => read(K.settings, {});
-  const L_saveSettings = s => write(K.settings, Object.assign(L_getSettings(), s));
+  const L_saveSettings = s => { write(K.settings, Object.assign(L_getSettings(), s)); return Promise.resolve(true); };
 
   const L_getCategories = () => read(K.categories, null) || [];
   const L_saveCategories = list => write(K.categories, list);
@@ -327,7 +327,11 @@ const DB = (() => {
   const C_getSettings = () => Object.assign({}, cache.settings || SEED_SETTINGS);
   const C_saveSettings = s => {
     cache.settings = Object.assign({}, cache.settings, s);
-    bg(fdb.collection('settings').doc('main').set(clean(cache.settings), { merge: true }));
+    // FIX (v47): promise return karo taake caller write complete hone ka wait kar sake.
+    // Pehle bg() fire-and-forget tha — foran reload karne par write adhoori reh jati thi.
+    return fdb.collection('settings').doc('main').set(clean(cache.settings), { merge: true })
+      .then(() => true)
+      .catch(e => { console.warn('Cloud write failed:', e && e.message); return false; });
   };
 
   const C_getCategories = () =>

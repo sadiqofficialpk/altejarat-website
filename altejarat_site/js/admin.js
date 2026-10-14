@@ -700,7 +700,7 @@
       </div>
       <div class="row-actions"><button class="btn btn-green" id="s_save">Save Settings</button></div>
       <p class="sub" id="s_msg" style="margin-top:12px"></p>`;
-    $('#s_save').onclick = () => {
+    $('#s_save').onclick = async () => {
       const p1 = $('#s_p1').value, p2 = $('#s_p2').value;
       if (p1 || p2) {
         if (p1 !== p2) { $('#s_msg').textContent = 'Passwords match nahi ho rahe.'; return; }
@@ -725,8 +725,9 @@
         bannerShow: $('#s_bshow').checked
       };
       if (p1) upd.adminPass = p1;
-      DB.saveSettings(upd);
-      $('#s_msg').textContent = '✓ Settings save ho gayi.';
+      $('#s_msg').textContent = '⏳ Save ho raha hai...';
+      const sOk = await DB.saveSettings(upd);
+      $('#s_msg').textContent = sOk ? '✓ Settings save ho gayi.' : '✗ Save nahi hui — internet check karke dobara try karo.';
       $('#s_p1').value = $('#s_p2').value = '';
     };
   }
@@ -834,7 +835,7 @@
       } catch (err) { $('#c_msg').textContent = 'Fail: ' + ((err && err.message) || err); }
     };
 
-    $('#c_save').onclick = () => {
+    $('#c_save').onclick = async () => {
       const v = id => $( '#' + id).value.trim();
       const prev = DB.getSettings().content || {};
       // FIX (v40): khaali field ab purane saved text ko blank nahi karega —
@@ -867,9 +868,10 @@
         const o = pPages[k] || {};
         if (t || b || o.title || o.body) content.pages[k] = { title: t || o.title || '', body: b || o.body || '' };
       });
-      DB.saveSettings({ content });
-      $('#c_msg').textContent = '✓ Content save ho gaya! Website par dekho.';
-      window.scrollTo(0, 0);
+      $('#c_msg').textContent = '⏳ Save ho raha hai...';
+      const cOk = await DB.saveSettings({ content });
+      $('#c_msg').textContent = cOk ? '✓ Content save ho gaya! Website par dekho.' : '✗ Save nahi hua — internet check karke dobara try karo.';
+      if (cOk) window.scrollTo(0, 0);
     };
   }
 })();
